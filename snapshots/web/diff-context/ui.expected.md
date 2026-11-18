@@ -1,5 +1,5 @@
-- button "Edit config.txt 1KB +1 -1" [expanded]:
-  - text: Edit
+- button "1 file changed config.txt 1KB +1 -1" [expanded]:
+  - text: 1 file changed
   - button "config.txt"
   - text: 1KB +1 -1
 - text: Code block

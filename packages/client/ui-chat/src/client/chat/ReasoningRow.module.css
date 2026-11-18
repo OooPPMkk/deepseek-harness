@@ -70,8 +70,47 @@
   display: none;
 }
 
+/* Recorded thinking time beside the title: pushed to the row's right edge so
+   the collapsed summary keeps the space between them, and quiet enough that
+   the summary still leads. */
+.duration {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+  color: var(--dsw-alias-label-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.durationNumber {
+  font-variant-numeric: tabular-nums;
+}
+
 .thinkBody {
   /* Indent under the title, which starts at leading (16 + delta) + gap 6. */
   padding: 4px 0 4px calc(22px + var(--dsh-content-font-delta, 0px));
   min-width: 0;
+}
+
+/* Expanded thinking reads as prose, not as chrome: the body rises one tier
+   above the row's tertiary title so multi-line reasoning is comfortable, and
+   paragraphs get section rhythm instead of the compact variant's 4px. The
+   selector stays scoped to the standard Body's compact Markdown so a
+   third-party body keeps its own typography. */
+.thinkBody [data-markdown-variant='compact'] {
+  color: var(--dsw-alias-label-secondary);
+  line-height: calc(22px + var(--dsh-content-font-delta-secondary, 0px));
+}
+
+.thinkBody [data-markdown-variant='compact'] :is(p, ul, ol, blockquote) {
+  margin: 8px 0;
+}
+
+.thinkBody [data-markdown-variant='compact'] > :first-child {
+  margin-top: 0;
+}
+
+.thinkBody [data-markdown-variant='compact'] > :last-child {
+  margin-bottom: 0;
 }

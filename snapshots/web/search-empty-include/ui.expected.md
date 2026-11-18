@@ -1,10 +1,10 @@
-- button "Grep marker" [expanded]
+- button "1 match marker" [expanded]
 - text: 1 matches · 1 files
 - button "Copy"
 - button "seed/example.ts 1" [expanded]
 - text: "1: export const marker = 'typescript';"
 - button "Inspect"
-- button "Grep marker" [expanded]
+- button "1 match marker" [expanded]
 - text: 1 matches · 1 files
 - button "Copy"
 - button "seed/example.md 1" [expanded]

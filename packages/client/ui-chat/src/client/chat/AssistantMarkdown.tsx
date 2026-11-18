@@ -6,6 +6,7 @@ import { JsonBlock, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownFileMentions, MarkdownPathImages } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatNodeOwnerProps, ChatViewSlotProps, UseDisclosure, UsePresentation, UseGroupAction } from '../contract/slots.ts'
 import type { AssistantBlock } from '../contract/snapshot.ts'
+import { thinkingDurationMs, type ThinkingTiming } from '../reasoning-text.ts'
 import { markdownLabels } from '../markdown-labels.ts'
 import { ReasoningRow } from './ReasoningRow.tsx'
 import css from './AssistantMarkdown.module.css'
@@ -36,6 +37,11 @@ export interface AssistantMarkdownProps extends
   useDisclosure: UseDisclosure
   blocks: readonly AssistantBlock[]
   streaming: boolean
+  /**
+   * Recorded Step boundaries. The first reasoning block of a Step whose first
+   * material is that reasoning shows the recorded thinking time.
+   */
+  timing?: ThinkingTiming | undefined
   /** Only finalized durable Assistant messages supply selection sources. */
   textInteractionSource?: boolean
   /** Frozen partial of an aborted turn: rendered with a stopped marker. */
@@ -56,7 +62,7 @@ export interface AssistantMarkdownProps extends
 
 /** Renders non-blank reasoning blocks as independent disclosures alongside the response. */
 export const AssistantMarkdown = memo(function AssistantMarkdown({
-  blocks, streaming, textInteractionSource = false, interrupted, loadImage, groupPart, useDisclosure,
+  blocks, streaming, timing, textInteractionSource = false, interrupted, loadImage, groupPart, useDisclosure,
   reasoningHidden = false, usePresentation, revealProcess, mentions, renderSlot, useGroupAction, t,
 }: AssistantMarkdownProps) {
   // Stable per locale revision (t identity changes on switch): a fresh object
@@ -74,6 +80,8 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
     || interrupted === true
     || blocks.some(block => block.kind !== 'tool-call')
   if (!hasVisible) return null
+  const thinkingMs = thinkingDurationMs(blocks, timing)
+  const firstReasoning = blocks.findIndex(block => block.kind === 'reasoning' && block.text.trim() !== '')
   const rendered: ReactNode[] = []
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]
@@ -104,6 +112,7 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
             useGroupAction={useGroupAction}
           >
             <ReasoningRow text={block.text} running={streaming && i === last} usePresentation={usePresentation}
+              durationMs={i === firstReasoning ? thinkingMs : undefined}
               useDisclosure={useDisclosure} renderSlot={renderSlot} textInteractionSource={textInteractionSource} t={t} />
           </ProcessReasoning>,
         )

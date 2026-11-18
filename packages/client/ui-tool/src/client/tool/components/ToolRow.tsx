@@ -24,6 +24,7 @@ import {
   FILE_TARGET_MOVE, FILE_TARGET_SEPARATOR, formatToolBody, type ToolRowFileTarget, type ToolRowState, type ToolRowVariant,
 } from '../models/tool-call-model.ts'
 import type { WebCardModelProps } from '../models/web-card-model.ts'
+import type { ToolOutcome } from '../models/tool-outcome.ts'
 import { AskQuestionCard } from './AskQuestionCard.tsx'
 import { ToolDetails, type ToolDetailsModel } from './ToolDetails.tsx'
 import { ExitCodeBadge } from './ExitCodeBadge.tsx'
@@ -38,6 +39,11 @@ export interface ToolRowProps {
   toolName?: string | undefined
   icon: ReactNode
   title: string
+  /**
+   * Settled result the row states instead of its action title, once the call
+   * has something to report. Absent keeps `title` as it was written.
+   */
+  outcome?: ToolOutcome | undefined
   summary: string
   /**
    * Trailing summary fragment rendered outside the ellipsized summary text, so
@@ -169,6 +175,7 @@ export const ToolRow = memo(function ToolRow({
   toolName,
   icon,
   title,
+  outcome,
   summary,
   summarySuffix,
   bodyRaw,
@@ -222,6 +229,10 @@ export const ToolRow = memo(function ToolRow({
   )
   const status = stateStatus(state, t)
   const running = state === 'running' || state === 'preparing'
+  // The settled *successful* result replaces the action title; a failure or a
+  // stop keeps naming the act, which is what the row has to explain.
+  const rowTitle = outcome === undefined || state !== 'ok' ? title
+    : 'count' in outcome ? t(outcome.key, { count: outcome.count }) : t(outcome.key)
   const normalSummary = terminalBody?.description ?? (open ? detailsBody?.expandedSummary ?? summary : summary)
   const exitLabel = terminalExitLabel(terminal, t)
   // Generic failures retain their first result line; command exits keep their description.
@@ -464,7 +475,7 @@ export const ToolRow = memo(function ToolRow({
         leadingClassName={css.leading}
         titleClassName={css.title}
         icon={icon}
-        title={title}
+        title={rowTitle}
         running={running}
         open={open}
         expandable={expandable}

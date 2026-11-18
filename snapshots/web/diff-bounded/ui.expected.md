@@ -1,5 +1,5 @@
-- button "Edit large.txt 4KB +130 -130" [expanded]:
-  - text: Edit
+- button "1 file changed large.txt 4KB +130 -130" [expanded]:
+  - text: 1 file changed
   - button "large.txt"
   - text: 4KB +130 -130
 - text: Code block

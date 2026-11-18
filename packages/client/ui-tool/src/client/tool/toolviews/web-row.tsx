@@ -4,6 +4,7 @@ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { webCardModel, webFetchHref } from '../models/web-card-model.ts'
 import { toolRowModel } from '../models/tool-call-model.ts'
+import { toolOutcome } from '../models/tool-outcome.ts'
 import { ToolRow } from '../components/ToolRow.tsx'
 import { CONVERSATION_NS as NS } from '../../locale.ts'
 
@@ -53,6 +54,7 @@ export function WebRow({ toolName, block, useContextMenu, sessionId, inspect, us
       title={t(toolName === 'web_search'
         ? WEB_TITLE_KEYS.web_search
         : toolName === 'web_fetch' ? WEB_TITLE_KEYS.web_fetch : model.titleKey)}
+      outcome={toolOutcome(block)}
       summary={model.summary}
       output={model.output}
       errorSummary={failureKey === undefined ? model.errorSummary : t(failureKey)}

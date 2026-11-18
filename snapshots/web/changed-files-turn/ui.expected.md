@@ -7,13 +7,13 @@
 - button "上下文注入 skill-catalog"
 - button "上下文注入 time-context"
 - button "思考 The user wants four things done directly. But I need to read intro.md before editing (fs-observation-policy requires reading existing file first). The user says don't look at the directory first, but reading intro.md is needed for the edit tool. Let me just do it."
-- button "读取 intro.md":
-  - text: 读取
+- button "读取了 3 行 intro.md":
+  - text: 读取了 3 行
   - button "intro.md"
 - button "运行命令 List files and show notes.txt"
 - button "思考 Now do all four actions. Edit intro.md, write src/util.ts, write app.local, bash append."
-- button "编辑 intro.md 1KB +1 -1":
-  - text: 编辑
+- button "修改了 1 个文件 intro.md 1KB +1 -1":
+  - text: 修改了 1 个文件
   - button "intro.md"
   - text: 1KB +1 -1
 - button "写入 src/util.ts 1KB +3 -0":

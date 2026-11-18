@@ -12,6 +12,13 @@ export type RunDurationTranslate =
 /** Refresh interval for whole-second live run clocks. */
 export const LIVE_RUN_CLOCK_INTERVAL_MS = 1000
 
+/**
+ * Smallest elapsed time a settled row states. Finer than one second reads as
+ * rounding noise beside the work it describes, so a row either omits the
+ * figure or, when it always states a total, floors it here.
+ */
+export const MINIMUM_STATED_DURATION_MS = 1000
+
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
 }
