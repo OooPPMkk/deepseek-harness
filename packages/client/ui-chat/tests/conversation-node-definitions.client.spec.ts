@@ -1494,7 +1494,7 @@ describe('built-in conversation node Definitions', () => {
     expect(replacement?.data).toMatchObject({ blocks: [{ kind: 'text', text: 'Replacement reply' }] })
   })
 
-  it('omits first-token metrics after live settlement and after reopening the same history', () => {
+  it('retains the first-token time across live settlement and reopening the same history', () => {
     const attemptId = brandString<LlmAttemptId>('settled-chat-timing')
     const starts = [
       at(1, 'turn/start', { turn: 1 }, { time: 1_000 }),
@@ -1535,7 +1535,7 @@ describe('built-in conversation node Definitions', () => {
       const view = snapshot(current)
       const assistant = (node(view, 'assistant-step')?.data as AssistantChatData).finalNode
       expect(assistant?.timing).toEqual({
-        stepStartTime: 1_010, firstTokenTime: null, completedTime: 1_050,
+        stepStartTime: 1_010, firstTokenTime: 1_030, completedTime: 1_050,
       })
       const tail = node(view, 'turn-tail')?.data as TurnTailChatData
       expect(tail.turn).toBe(1)
@@ -1657,7 +1657,8 @@ describe('built-in conversation node Definitions', () => {
     const finalNode = (node(finalizedPacked, 'assistant-step')?.data as AssistantChatData).finalNode
     expect(finalNode).toMatchObject({
       blocks: [{ kind: 'text', text: 'done' }],
-      timing: { firstTokenTime: null },
+      // The retried attempt's durable stream still records its first token.
+      timing: { firstTokenTime: 1_700_000_000_027 },
     })
 
     const namedToolHistory = [
@@ -1684,7 +1685,8 @@ describe('built-in conversation node Definitions', () => {
     const namedTool = (node(namedToolPacked, 'assistant-step')?.data as AssistantChatData).finalNode
     expect(namedTool).toMatchObject({
       blocks: [{ kind: 'tool-call', callId: 'call-2', name: 'read', argsRaw: '' }],
-      timing: { firstTokenTime: null },
+      // The first named Tool delta is the Step's first token even with no arguments yet.
+      timing: { firstTokenTime: 4_000 },
     })
   })
 
