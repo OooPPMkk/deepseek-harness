@@ -15,7 +15,7 @@
 - button "Copy"
 - status: Stopped
 - button "Stopped" [disabled] [expanded]
-- button "Injected context · {{duration}}"
+- button "Injected context"
 - paragraph: partial
 - text: Stopped
 - button "Copy"

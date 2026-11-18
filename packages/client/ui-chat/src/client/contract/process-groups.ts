@@ -21,13 +21,6 @@ export interface ProcessGroupData {
   readonly turn: number
   readonly closed: boolean
   readonly summary: ProcessActivitySummary
-  /**
-   * Wall-clock span of the group's recorded member work, from the earliest
-   * recorded start to the latest recorded end. Absent while the group is open,
-   * because a total needs its closing edge, and whenever no member records a
-   * timestamp.
-   */
-  readonly elapsedMs?: number | undefined
 }
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {

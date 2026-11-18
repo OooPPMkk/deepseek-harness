@@ -10,7 +10,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Visited web pages · {{duration}}" [expanded]
+- button "Visited web pages" [expanded]
 - button "Context injection runtime-context"
 - button "Think The user wants me to use the web_fetch tool exactly once to fetch http://public.test:43117/menu.html, then reply with exactly \"DONE\". Let me do that."
 - text: Failed

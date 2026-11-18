@@ -112,7 +112,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Analysis completed · {{duration}}" [expanded]
+- button "Analysis completed" [expanded]
 - button "Think Settled reasoning source"
 - paragraph: Quote fixture ready.
 - button "Copy"

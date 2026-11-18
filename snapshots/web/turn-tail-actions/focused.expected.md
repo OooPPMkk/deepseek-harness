@@ -11,9 +11,9 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Analysis completed · {{duration}}"
+- button "Analysis completed"
 - paragraph: Reading the workspace now.
-- button "Ran commands · {{duration}}" [expanded]
+- button "Ran commands" [expanded]
 - button "Bash Print alpha to stdout"
 - paragraph: DONE
 - button "Copy"

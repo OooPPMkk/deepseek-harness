@@ -1329,44 +1329,6 @@ describe('ChatView', () => {
     expect(translate.mock.calls.filter(([key]) => key.startsWith('message.stepProcess.'))).toHaveLength(0)
   })
 
-  it('states a closed group\'s recorded total beside its activity title', () => {
-    const snapshot = chatSnapshotFixture({ nodes: [user(1, 'outside'), userInTurn(2, 'inside', 1)] })
-    const h = makeHarness({}, {}, snapshot)
-    const inside = snapshot.order[1] as NodeKey
-    const key = 'timed' as GroupKey
-    const groupStore = new ConversationGroupStore<ProcessGroupData>()
-    const summary = { counts: [{ kind: 'commands' as const, count: 1 }], running: undefined, runningDetail: '' }
-    const install = (data: ProcessGroupData) => {
-      groupStore.prepareAndInstall({
-        groups: { kind: 'replace', snapshots: [{ key, data, members: [{ kind: 'node', key: inside }] }] },
-        entries: [{ kind: 'group', key }],
-      }, id => snapshot.nodes.get(id))
-      groupStore.publish()
-    }
-    install({ turn: 1, closed: true, summary, elapsedMs: 12_000 })
-    h.setGrouped(groupStore)
-    const view = render(<h.ChatView {...h.props} />)
-    const header = view.container.querySelector<HTMLButtonElement>('[data-process-activity]')!
-    // The title still names the work; the total follows its own separator.
-    expect(header.textContent).toBe(h.props.t('message.stepProcess.done.commands')
-      + h.props.t('message.turnProcess.separator') + '12秒')
-    expect(header.querySelector('[data-process-duration]')).not.toBeNull()
-
-    // An open group keeps its live label: a total needs the closing edge.
-    act(() => { install({ turn: 1, closed: false, summary, elapsedMs: 12_000 }) })
-    expect(header.querySelector('[data-process-duration]')).toBeNull()
-
-    // A row that promises a total floors a shorter span instead of dropping it,
-    // so the figure never reads as rounding noise and never vanishes.
-    act(() => { install({ turn: 1, closed: true, summary, elapsedMs: 900 }) })
-    expect(header.textContent).toBe(h.props.t('message.stepProcess.done.commands')
-      + h.props.t('message.turnProcess.separator') + '1秒')
-
-    // A group with no recorded span states the same title it did before.
-    act(() => { install({ turn: 1, closed: true, summary }) })
-    expect(header.textContent).toBe(h.props.t('message.stepProcess.done.commands'))
-  })
-
   it('passes independently keyed group parts to business Node renderers', () => {
     const snapshot = chatSnapshotFixture({ nodes: [assistant(1, 'answer')] })
     const h = makeHarness({}, {}, snapshot)
