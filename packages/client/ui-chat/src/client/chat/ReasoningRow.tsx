@@ -3,6 +3,7 @@ import { memo, useMemo } from 'react'
 import { DisclosureRow, IconThinkOutlineRegular, TextShimmer } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatViewSlotProps, UseDisclosure, UsePresentation } from '../contract/slots.ts'
+import { formatRunDuration, MINIMUM_STATED_DURATION_MS } from './message-chrome.ts'
 import { reasoningText } from '../reasoning-text.ts'
 import a11yCss from './accessibility.module.css'
 import css from './ReasoningRow.module.css'
@@ -40,6 +41,7 @@ function latestCompletedParagraphFirstLine(text: string): string {
  * collapsed summaries. The Body Slot receives both original and display-ready text.
  * @param props.text - complete or streaming reasoning text.
  * @param props.running - whether this block is the streaming tail.
+ * @param props.durationMs - recorded thinking time for this block's Step, when it is the Step's first material.
  * @param props.usePresentation - live display-policy selector for this reasoning row.
  * @param props.useDisclosure - independent open state with enclosing-Turn resets.
  * @param props.renderSlot - framework renderer for the standard reasoning Body Slot.
@@ -47,10 +49,11 @@ function latestCompletedParagraphFirstLine(text: string): string {
  * @returns the reasoning disclosure.
  */
 export const ReasoningRow = memo(function ReasoningRow({
-  text: rawText, running, textInteractionSource = false, usePresentation, useDisclosure, renderSlot, t,
+  text: rawText, running, durationMs, textInteractionSource = false, usePresentation, useDisclosure, renderSlot, t,
 }: {
   text: string
   running: boolean
+  durationMs?: number | undefined
   textInteractionSource?: boolean
   useDisclosure: UseDisclosure
   usePresentation: UsePresentation
@@ -80,6 +83,15 @@ export const ReasoningRow = memo(function ReasoningRow({
       {renderSlot('conversation.chat.reasoning.body', { rawText, text, running })}
     </div>
   ) : undefined, [expanded, renderSlot, running, rawText, text, textInteractionSource])
+  // Right-aligned recorded duration: it states how long this Step thought, so
+  // it sits outside the ellipsized summary and never takes width from it.
+  const duration = useMemo(() => durationMs === undefined || durationMs < MINIMUM_STATED_DURATION_MS ? undefined : (
+    <span className={css.duration} data-think-duration>
+      {formatRunDuration(durationMs, t).map((part, index) => (
+        <span key={index} className={part.numeric ? css.durationNumber : undefined}>{part.text}</span>
+      ))}
+    </span>
+  ), [durationMs, t])
 
   if (hidden) return null
 
@@ -104,6 +116,7 @@ export const ReasoningRow = memo(function ReasoningRow({
         expandOnRowClick
         onToggle={toggle}
         collapsedContent={collapsedContent}
+        headerAccessory={duration}
       >
         {content}
       </DisclosureRow>

@@ -149,6 +149,58 @@ describe('ReasoningRow', () => {
     expect(view.getAllByRole('button')).toHaveLength(1)
   })
 
+  it('shows the recorded thinking time beside the title, and only when it is known', () => {
+    const settled = { useDisclosure, usePresentation: useDetailedPresentation, renderSlot, t }
+    const view = render(<ReasoningRow {...settled} text={'Inspect the session\nDetail'} running={false} durationMs={2_000} />)
+    expect(view.getByText('思考')).toBeTruthy()
+    expect(view.container.querySelector('[data-think-duration]')?.textContent).toBe('2秒')
+    // Settled preview still leads with the summary while the time trails it.
+    expect(view.getByText('Inspect the session')).toBeTruthy()
+
+    view.rerender(<ReasoningRow {...settled} text={'Inspect the session\nDetail'} running={false} />)
+    expect(view.container.querySelector('[data-think-duration]')).toBeNull()
+
+    // A sub-second Step would read as "0秒": the figure stays hidden instead.
+    view.rerender(<ReasoningRow {...settled} text={'Inspect the session\nDetail'} running={false} durationMs={400} />)
+    expect(view.container.querySelector('[data-think-duration]')).toBeNull()
+  })
+
+  it('labels only the Step first reasoning row with its duration', () => {
+    const view = render(
+      <AssistantMarkdown renderSlot={renderSlot} useDisclosure={useDisclosure} useGroupAction={useSearchableHidden}
+        usePresentation={useDetailedPresentation}
+        t={t}
+        timing={{ stepStartTime: 1_000, firstTokenTime: 3_000 }}
+        blocks={[
+          { kind: 'reasoning', text: 'Leading thought' },
+          { kind: 'reasoning', text: 'Later thought' },
+        ]}
+        streaming={false}
+        loadImage={unusedImageLoader}
+      />,
+    )
+    const durations = view.container.querySelectorAll('[data-think-duration]')
+    expect(durations).toHaveLength(1)
+    expect(durations[0]?.textContent).toBe('2秒')
+    expect(durations[0]?.closest('[data-variant="think"]')?.textContent).toContain('Leading thought')
+
+    // A Step that answers before thinking has no single thinking boundary.
+    view.rerender(
+      <AssistantMarkdown renderSlot={renderSlot} useDisclosure={useDisclosure} useGroupAction={useSearchableHidden}
+        usePresentation={useDetailedPresentation}
+        t={t}
+        timing={{ stepStartTime: 1_000, firstTokenTime: 3_000 }}
+        blocks={[
+          { kind: 'text', text: 'Answer' },
+          { kind: 'reasoning', text: 'Afterwards' },
+        ]}
+        streaming={false}
+        loadImage={unusedImageLoader}
+      />,
+    )
+    expect(view.container.querySelector('[data-think-duration]')).toBeNull()
+  })
+
   it.each([
     ['', ''],
     ['An unfinished line', ''],

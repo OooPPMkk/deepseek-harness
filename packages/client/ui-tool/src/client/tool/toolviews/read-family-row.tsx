@@ -13,6 +13,7 @@ import type { ToolFileInjected } from '../file-menu.ts'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { toolRowModel } from '../models/tool-call-model.ts'
+import { toolOutcome } from '../models/tool-outcome.ts'
 import { ToolRow, type ToolRowProps } from '../components/ToolRow.tsx'
 
 /** Full row props of a read-family toolview: the runtime share plus its locale seat. */
@@ -56,6 +57,7 @@ export function readFamilyRow(
       toolName={toolName}
       icon={<IconBrowseOutlineRegular size={14} />}
       title={t(model.titleKey)}
+      outcome={toolOutcome(block)}
       summary={model.summary}
       bodyRaw={null}
       output={model.output}

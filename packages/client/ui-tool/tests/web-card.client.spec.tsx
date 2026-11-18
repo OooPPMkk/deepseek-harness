@@ -168,7 +168,7 @@ describe('chat row web body', () => {
     const globe = render(<IconGlobeOutlineRegular />).container.querySelector('svg')!.outerHTML
     const view = render(<WebRow {...rowProps(settledSearch(), 'web_search')} useContextMenu={contextMenuHook()} />)
     // Collapsed: the summary row alone, no card in the DOM.
-    expect(view.getByText('网页搜索')).toBeTruthy()
+    expect(view.getByText('搜索到 2 个网页')).toBeTruthy()
     expect(view.container.querySelector('svg')?.outerHTML).toBe(globe)
     expect(view.queryByText('Titled')).toBeNull()
     expect(view.container.querySelector('[data-web]')).toBeNull()

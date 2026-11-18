@@ -50,6 +50,7 @@ export const AssistantNodeView = memo(function AssistantNodeView({
     <AssistantMarkdown
       blocks={data.blocks}
       groupPart={groupPart}
+      timing={data.finalNode?.timing}
       useDisclosure={useDisclosure}
       streaming={data.status === 'running'}
       textInteractionSource={data.status === 'settled' && data.finalNode?.messageId !== undefined}
