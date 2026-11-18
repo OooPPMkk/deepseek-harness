@@ -14,6 +14,7 @@ import { turnProcessOpen } from '../stores.ts'
 import { ChatNodeSeat } from './ChatNodeSeat.tsx'
 import { hiddenOrCollapsing } from './flow-motion.ts'
 import { chatRenderKey } from './render-entry.ts'
+import { formatRunDuration, MINIMUM_STATED_DURATION_MS } from './message-chrome.ts'
 import { processTitle } from './step-process.ts'
 import { useDisclosure } from './use-disclosure.ts'
 import { useProcessScroll } from './use-process-scroll.ts'
@@ -112,6 +113,12 @@ const ProcessGroupHeader = memo(function ProcessGroupHeader({ groupKey, useChatG
       : t(`message.stepProcess.${live.activity}`)
   const detail = detailed && !data.closed ? live.detail : ''
   const title = detail === '' ? label : `${label}${t('message.turnProcess.separator')}${detail}`
+  // A closed group states its recorded total; the open group's live label owns
+  // what is happening now, so its total waits for the closing edge. A row that
+  // promises a total floors a shorter span rather than dropping the figure.
+  const elapsedMs = data.closed ? data.elapsedMs : undefined
+  const duration = elapsedMs === undefined ? undefined
+    : formatRunDuration(Math.max(MINIMUM_STATED_DURATION_MS, elapsedMs), t).map(part => part.text).join('')
   const activity = data.closed ? data.summary.counts[0]?.kind ?? 'thinking' : live.activity
   return (
     <button type="button" className={css.title} aria-expanded={open} aria-controls={bodyId}
@@ -123,7 +130,17 @@ const ProcessGroupHeader = memo(function ProcessGroupHeader({ groupKey, useChatG
         </span>
       </span>
       <TextShimmer active={!data.closed}>
-        <TextShimmer className={css.label}>{title}</TextShimmer>
+        <TextShimmer className={css.label}>
+          {duration === undefined ? title : (
+            // One phrase, so the total ends where the title's ellipsis ends.
+            <>
+              {title}
+              <span className={css.duration} data-process-duration>
+                {t('message.turnProcess.separator')}{duration}
+              </span>
+            </>
+          )}
+        </TextShimmer>
       </TextShimmer>
     </button>
   )

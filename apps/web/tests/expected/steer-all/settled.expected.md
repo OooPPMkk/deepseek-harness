@@ -11,7 +11,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [disabled]
-- button "Asked questions"
+- button "Asked questions · {{duration}}"
 - group "Questions and answers":
   - term: Checkpoint Ready to continue?
   - definition: "Yes"

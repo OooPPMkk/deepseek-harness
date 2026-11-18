@@ -9,7 +9,7 @@ import type { ProcessActivitySummary, ProcessGroupData } from '../contract/proce
 import { hasAssistantReplyContent } from '../contract/assistant-content.ts'
 import { isVisibleChatNode } from '../contract/chat-visibility.ts'
 import { isAtOrOutside } from '../contract/group-tree.ts'
-import { processActivity } from './process-activity.ts'
+import { processActivity, processElapsedMs } from './process-activity.ts'
 
 type ProcessInput = ConversationGroupInput<ChatConversationViewNode>
 
@@ -67,13 +67,16 @@ class ProcessGroup {
     const nodes = this.members.map(member => readNode(input, member.key))
     const unchanged = nodes.length === this.nodes.length && nodes.every((node, index) => node === this.nodes[index])
     const previous = this.snapshot.data
-    const activity = unchanged && previous.closed === closed ? previous.summary : processActivity(nodes)
+    const stable = unchanged && previous.closed === closed
+    const activity = stable ? previous.summary : processActivity(nodes)
+    // A total needs the closing edge, so an open group states none and keeps its live label.
+    const elapsedMs = stable ? previous.elapsedMs : closed ? processElapsedMs(nodes) : undefined
     const summary = closed ? { counts: activity.counts, running: undefined, runningDetail: '' } : activity
     this.nodes = nodes
-    if (previous.closed !== closed || !sameSummary(previous.summary, summary)) {
+    if (previous.closed !== closed || !sameSummary(previous.summary, summary) || previous.elapsedMs !== elapsedMs) {
       this.snapshot = {
         key: this.key, members: this.members,
-        data: { turn: this.turn, closed, summary },
+        data: { turn: this.turn, closed, summary, elapsedMs },
       }
     }
   }

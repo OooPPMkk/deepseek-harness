@@ -14,7 +14,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Called tools" [expanded]
+- button "Called tools · {{duration}}" [expanded]
 - button "Context injection runtime-context"
 - button "Think I will inspect the current Session's dynamic Cordis Plugins before defining the snapshot Package."
 - button "Inspect plugins 0 dynamic plugins"
@@ -55,7 +55,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Called tools" [expanded]
+- button "Called tools · {{duration}}" [expanded]
 - text: Stop Cordis Plugin snap-1
 - button "Inspect"
 - text: Dynamic Plugin snap-1 is stopped; its definition and versions remain.

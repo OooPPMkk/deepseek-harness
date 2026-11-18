@@ -168,3 +168,64 @@ export function processActivity(nodes: readonly ChatNode[]): ProcessActivitySumm
     ...preparing ? { preparing: true } : {},
   }
 }
+
+/** One member's recorded start and end, in that order. */
+type MemberTimes = readonly [start: number, end: number]
+
+/**
+ * Read one member's recorded start and end.
+ * @param node - process member in Chat order.
+ * @returns epoch-ms bounds, or undefined for a member that records no timestamp.
+ */
+function memberTimes(node: ChatNode): MemberTimes | undefined {
+  switch (node.kind) {
+    case 'assistant-step': {
+      const timing = node.data.finalNode?.timing
+      // A null step start sits outside the loaded window, so the node's own
+      // event time is then the earliest instant this row can date itself from.
+      return [timing?.stepStartTime ?? node.data.time, timing?.completedTime ?? node.data.time]
+    }
+    case 'tool-call': {
+      const root = node.data.root
+      // A settled root spans its call to its result; a root without one records only its start.
+      return 'kind' in root ? [root.callTime ?? root.time, root.time] : [root.time, root.time]
+    }
+    case 'manual-compaction':
+      return [node.data.command.time, node.data.command.time]
+    case 'model-retry':
+      return [node.data.current.time, node.data.current.time]
+    case 'system-prompt':
+      // The prompt row has no event of its own; it dates itself from its anchor.
+      return undefined
+    case 'context':
+    case 'user':
+    case 'steering':
+    case 'turn-trigger':
+    case 'command':
+    case 'unknown':
+      return [node.data.time, node.data.time]
+    default:
+      // Every remaining kind is a Turn-level row the grouping never makes a member.
+      return undefined
+  }
+}
+
+/**
+ * Wall-clock span of one group's recorded member work: the earliest recorded
+ * start to the latest recorded end. Members without a timestamp, and the gaps
+ * between members, count as part of the span because the group is one
+ * continuous stretch of work.
+ * @param nodes - process members in Chat order.
+ * @returns elapsed milliseconds, or undefined when no member records a timestamp.
+ */
+export function processElapsedMs(nodes: readonly ChatNode[]): number | undefined {
+  let start = Number.POSITIVE_INFINITY
+  let end = Number.NEGATIVE_INFINITY
+  for (const node of nodes) {
+    const times = memberTimes(node)
+    if (times === undefined) continue
+    start = Math.min(start, times[0])
+    end = Math.max(end, times[1])
+  }
+  return start === Number.POSITIVE_INFINITY ? undefined : Math.max(0, end - start)
+}
