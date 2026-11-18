@@ -4,6 +4,7 @@ import type {
   ConversationNodeContext, ConversationNodeDefinition,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { StreamChunk } from '@deepseek-ai/dsh-llm'
+import { assistantStreamFirstTokenTime } from '@deepseek-ai/dsh-llm/assistant-stream'
 import type {} from '@deepseek-ai/dsh-llm-retry/types'
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
 import type { AssistantChatData } from '../contract/chat-nodes.ts'
@@ -182,6 +183,10 @@ function settleMessage(
     blocks,
     visibleByIndex,
     visibleBlocks: visibleByIndex.reduce((count, visible) => count + Number(visible), 0),
+    // A reopened Session replays the durable stream, which records the first
+    // token's time even though no live chunk reached this fold. Without this the
+    // Step's thinking duration would survive only in the tab that streamed it.
+    firstTokenTime: state.firstTokenTime ?? assistantStreamFirstTokenTime(event.data.stream),
     final: match,
     usage: event.data.usage,
   }
