@@ -14,7 +14,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Injected context · {{duration}}" [expanded]
+- button "Injected context" [expanded]
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
 - button "Context injection user-invoke-demo"

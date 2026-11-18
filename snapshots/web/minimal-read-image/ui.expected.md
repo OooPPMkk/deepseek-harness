@@ -12,7 +12,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Read images · {{duration}}" [expanded]
+- button "Read images" [expanded]
 - button "Context injection runtime-context"
 - button "Read image red.png" [expanded]:
   - text: Read image

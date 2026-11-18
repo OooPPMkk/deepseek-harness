@@ -13,7 +13,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Called tools · {{duration}}" [expanded]
+- button "Called tools" [expanded]
 - text: Failed
 - 'button "Tool call Error: the user rejected tool \"mystery\""'
 - text: Failed
@@ -40,7 +40,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Called tools · {{duration}}" [expanded]
+- button "Called tools" [expanded]
 - text: Failed
 - 'button "Tool call Error: the user rejected tool \"mystery\"" [expanded]'
 - text: "IN { \"target\": \"old-build.log\" } OUT Error: the user rejected tool \"mystery\""

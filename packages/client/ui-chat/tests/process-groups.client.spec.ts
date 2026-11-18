@@ -4,11 +4,9 @@ import type { MessageId } from '@deepseek-ai/dsh-llm/types'
 import type { ConversationTimelineSnapshot, TurnLocation } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { PartialArguments } from '@deepseek-ai/dsh-util-values'
 import type { ChatConversationViewNode, ChatNode } from '../src/client/contract/chat-nodes.ts'
-import type { CommandNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { ModelRetryNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { ChatSnapshotBuilder } from '../src/client/conversation-nodes/chat-snapshot-builder.ts'
 import { ProcessState } from '../src/client/conversation-nodes/process-groups.ts'
-import { processActivity, processElapsedMs } from '../src/client/conversation-nodes/process-activity.ts'
+import { processActivity } from '../src/client/conversation-nodes/process-activity.ts'
 import { ConversationGroupStore } from '../../ui-conversation/src/client/conversation/group-store.ts'
 import type { ProcessGroupData } from '../src/client/contract/process-groups.ts'
 
@@ -102,109 +100,6 @@ describe('Definition-owned Chat process groups', () => {
     expect(processActivity([context, { ...context, key: 'second' }]).counts).toEqual([{ kind: 'context', count: 2 }])
     expect(processActivity([context, tool('call', 2)]).counts).toEqual([{ kind: 'commands', count: 1 }])
     expect(processActivity([context, assistant('thinking')]).counts).toEqual([])
-  })
-
-  describe('processElapsedMs', () => {
-    const contextNode = (time: number): ChatNode<'context'> => ({
-      key: `context:${time}`, id: `context:${time}`, kind: 'context', target: 'chat', anchorSeq: time,
-      location: { kind: 'turn', turn }, visibility: 'visible',
-      data: {
-        kind: 'context', seq: time, time, content: [{ type: 'text', text: 'context' }], source: null,
-        producer: { role: 'inject', label: null }, form: null,
-      },
-    })
-    const settledTool = (time: number, callTime: number | null): ChatNode<'tool-call'> => ({
-      ...tool('settled', time),
-      data: { root: {
-        kind: 'tool-result', callId: 'settled', seq: time, time, callTime,
-        name: 'bash', args: PartialArguments.fromText('{"command":"pwd"}'),
-        call: { name: 'bash', argsRaw: '{"command":"pwd"}' }, content: [], isError: false, subCalls: [],
-      } },
-    })
-    const settledAssistant = (stepStartTime: number | null, time: number): ChatNode<'assistant-step'> => ({
-      ...assistant('thinking'),
-      data: {
-        status: 'settled', turn: 1, step: 1, time,
-        blocks: [{ kind: 'reasoning', text: 'thinking' }],
-        finalNode: {
-          kind: 'assistant', seq: 2, time, turn: 1, step: 1, blocks: [],
-          timing: { stepStartTime, firstTokenTime: 1, completedTime: time },
-        },
-      },
-    })
-
-    it('spans a settled Step from its recorded start to its completed message', () => {
-      expect(processElapsedMs([settledAssistant(1_000, 4_000)])).toBe(3_000)
-    })
-
-    it('falls back to the node time when the Step start sits outside the loaded window', () => {
-      expect(processElapsedMs([settledAssistant(null, 4_000)])).toBe(0)
-    })
-
-    it('records only a running Step\'s own instant', () => {
-      expect(processElapsedMs([assistant('thinking')])).toBe(0)
-    })
-
-    it('spans a settled Tool from its call to its result', () => {
-      expect(processElapsedMs([settledTool(9, 5)])).toBe(4)
-    })
-
-    it('records a single instant for a Tool whose call left the loaded window', () => {
-      expect(processElapsedMs([settledTool(9, null)])).toBe(0)
-      expect(processElapsedMs([tool('call', 7)])).toBe(0)
-    })
-
-    it('spans the gaps between members, which are part of the same stretch of work', () => {
-      expect(processElapsedMs([contextNode(1), tool('call', 7), settledTool(12, 9)])).toBe(11)
-    })
-
-    it('clamps a member whose recorded end precedes its start', () => {
-      expect(processElapsedMs([settledAssistant(5_000, 1_000)])).toBe(0)
-    })
-
-    it('states no span when no member records a timestamp', () => {
-      const tail: ChatNode<'turn-tail'> = {
-        key: 'tail', id: 'tail', kind: 'turn-tail', target: 'chat', anchorSeq: 3,
-        location: { kind: 'turn', turn }, visibility: 'visible',
-        data: { turn: 1, seq: 3, time: 3, closing: null, branchUnavailable: false },
-      }
-      expect(processElapsedMs([])).toBeUndefined()
-      expect(processElapsedMs([tail])).toBeUndefined()
-      expect(processElapsedMs([tail, contextNode(1)])).toBe(0)
-    })
-
-    it('dates a retry row, a command row, and a prompt row by what each records', () => {
-      const retry: ChatNode<'model-retry'> = {
-        key: 'retry', id: 'retry', kind: 'model-retry', target: 'chat', anchorSeq: 4,
-        location: { kind: 'turn', turn }, visibility: 'visible', groupTree: 'process',
-        data: {
-          attempts: [], current: {
-            kind: 'model-retry', retryId: 'retry' as ModelRetryNode['retryId'], seq: 4, time: 4,
-            turn: 1, step: 1, retryState: 'scheduled', provider: 'mock', mode: 'normal',
-            policyKey: 'mock-normal', retry: 1, maxRetries: 2, delayMs: 450,
-            failure: { code: 'TRANSPORT', message: 'reset' },
-          },
-        },
-      }
-      const command: ChatNode<'manual-compaction'> = {
-        key: 'compact', id: 'compact', kind: 'manual-compaction', target: 'chat', anchorSeq: 9,
-        location: { kind: 'turn', turn }, visibility: 'visible',
-        data: {
-          command: {
-            kind: 'command', seq: 9, time: 9, commandId: 'compact' as CommandNode['commandId'],
-            name: 'compact', args: null, outcome: null,
-          },
-          compaction: null,
-        },
-      }
-      const prompt: ChatNode<'system-prompt'> = {
-        key: 'prompt', id: 'prompt', kind: 'system-prompt', target: 'chat', anchorSeq: 1,
-        location: { kind: 'turn', turn }, visibility: 'visible', data: { text: 'system' },
-      }
-      expect(processElapsedMs([retry])).toBe(0)
-      expect(processElapsedMs([command])).toBe(0)
-      expect(processElapsedMs([prompt, retry, command])).toBe(5)
-    })
   })
 
   it('keeps 160 graphemes when the bounded prefix splits a surrogate pair', () => {
@@ -308,9 +203,8 @@ describe('Definition-owned Chat process groups', () => {
     expect(source.getSnapshot()?.data.summary.preparing).toBe(true)
     h.builder.apply({ upserts: [separator(3, true)], timeline })
     h.commit()
-    // The group never saw a result, so its one member records only its start.
     expect(source.getSnapshot()?.data).toEqual({
-      turn: 1, closed: true, elapsedMs: 0,
+      turn: 1, closed: true,
       summary: { counts: [{ kind: 'write', count: 1 }], running: undefined, runningDetail: '' },
     })
   })

@@ -2,7 +2,7 @@
 - button "复制"
 - status: 已完成
 - button "已完成，用时 {{duration}}" [expanded]
-- button "执行了命令，已写入文件，已读取文件等 · {{duration}}" [expanded]
+- button "执行了命令，已写入文件，已读取文件等" [expanded]
 - button "上下文注入 runtime-context"
 - button "上下文注入 skill-catalog"
 - button "上下文注入 time-context"
