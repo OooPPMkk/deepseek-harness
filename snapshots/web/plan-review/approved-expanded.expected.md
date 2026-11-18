@@ -11,7 +11,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Analysis completed" [expanded]
+- button "Analysis completed · {{duration}}" [expanded]
 - button "Context injection plan-mode The user switched this session to plan mode."
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
@@ -21,7 +21,7 @@
   - text: Since the user has explicitly asked me not to read or write any files and to go straight to planning, I'll proceed with
   - code: exit_plan_mode
   - text: .
-- button "Called tools" [expanded]
+- button "Called tools · {{duration}}" [expanded]
 - 'button "Tool call exit_plan_mode · # Add `--greeting` flag to CLI"'
 - 'button "Think The plan was approved. The user''s last instruction says: \"Once the plan is approved, reply with the single word DONE and stop.\" So I should just reply with DONE and stop."'
 - paragraph: DONE

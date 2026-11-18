@@ -12,7 +12,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Asked questions" [expanded]
+- button "Asked questions · {{duration}}" [expanded]
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
 - button "Context injection time-context"
@@ -26,7 +26,7 @@
   - definition: Blue, Include accessibility notes
   - text: {{clock}}
   - button "Copy"
-- button "Analysis completed" [expanded]
+- button "Analysis completed · {{duration}}" [expanded]
 - button "Think The user answered \"Blue\". I should now reply with the single word DONE and stop."
 - paragraph: DONE
 - button "Copy"

@@ -2,7 +2,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
-- button "Ran code and called tools" [expanded]
+- button "Ran code and called tools · {{duration}}" [expanded]
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
 - button "Context injection time-context"

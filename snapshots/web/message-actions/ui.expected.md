@@ -16,9 +16,9 @@
 - tooltip "Copy"
 - status: Stopped
 - button "Stopped" [disabled] [expanded]
-- button "Analysis completed"
+- button "Analysis completed · {{duration}}"
 - paragraph: I will read both files before answering.
-- button "Read files"
+- button "Read files · {{duration}}"
 - button "Copy"
 - button "Good response"
 - button "Bad response"

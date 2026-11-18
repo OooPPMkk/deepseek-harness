@@ -12,7 +12,7 @@
 - button "Copy"
 - status: Failed
 - button "Failed" [disabled] [expanded]
-- button "Injected context"
+- button "Injected context · {{duration}}"
 - status:
   - text: This turn failedAPI key is invalid
   - code: AUTH
