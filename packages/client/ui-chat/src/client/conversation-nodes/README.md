@@ -60,7 +60,7 @@ Assume the Turn above completed normally, with no inner disclosure manually open
 | Whole Turn and G1 open, Standard or Detailed | G1's reasoning and tool rows with the settled reasoning preview; G2 remains a header. Full reasoning/tool bodies are still manual. |
 | Verbose | Whole-Turn duration/status header without a collapse action, all process rows, intermediate reply, and final response. No group headers; individual tool/reasoning bodies remain manual. |
 
-Visibility applies from outside inward: whole Turn → secondary group → individual reasoning/tool disclosure. Opening an inner layer cannot bypass a closed outer layer. Category changes never open or close a layer. Mode changes preserve membership and manual opening choices.
+Visibility applies from outside inward: whole Turn → secondary group → individual reasoning/tool disclosure. Opening an inner layer cannot bypass a closed outer layer. Category changes never open or close a layer. Mode changes preserve membership and manual opening choices. While Thinking content is Expanded, completion never closes the Turn or its groups by itself; only the reader's own action collapses them.
 
 If steering, a User message, or a trigger notice follows process output, the Turn offers only individual group disclosures, not whole-Turn collapse. In Compact/Standard, `G1 → steering 1 → G2 → steering 2 → G3` retains all three headers and both inputs in that order, with intermediate replies visible; opening one group reveals only its body. Detailed directly shows group bodies only while the Turn runs; completed Turns retain headers and manual disclosure. Verbose shows group bodies directly in both cases. The Turn control still shows duration or status, without a collapse action.
 
@@ -122,6 +122,7 @@ Settings → General → Work details offers four modes for choosing how much to
 | Process-group body | Initially collapsed | Initially collapsed | Directly visible without a group-level height cap in running Turns; manual disclosure in historical Turns | Directly visible without a group-level height cap in running and historical Turns |
 | Settled reasoning preview | Hidden | First line | First line | First line |
 | Individual reasoning and tool bodies | Manual expansion | Manual expansion | Manual expansion | Manual expansion |
+| Reasoning body before a reader toggle | Thinking content preference | Thinking content preference | Thinking content preference | Thinking content preference |
 | Eligible completed Turn | Initially collapsed | Initially collapsed | Initially collapsed | Always open; duration/status header cannot collapse it |
 
 ### Defaults and saving preferences
@@ -149,6 +150,13 @@ Verbose retains its flat process rows under either timing. Failed, stopped, and 
 ### Replies after collapse
 
 Settings → General → Replies after collapse appears directly below Collapse work details and chooses which Assistant replies stay visible when a Turn's process folds. All replies is the default: every reply stays visible and only reasoning, tool calls, and step groups fold; a Turn whose range holds only replies offers no collapse action. Final answer only folds intermediate replies with the process and keeps only the final answer visible. The choice is saved as `ui-chat.foldedReplies` through the same Host profile settings and applies immediately to already rendered Turns without remounting their rows. Verbose never folds a Turn, so the setting is hidden while Verbose is selected.
+
+<a id="reasoning-disclosure"></a>
+### Thinking content
+
+Settings → General → Thinking content appears directly below Replies after collapse and chooses how a reasoning body presents before the reader toggles it. Collapsed is the default and keeps the summary row the reader opens per step. Expanded renders every reasoning body from the start, including the body that is still streaming, so the reader follows the reasoning as it arrives instead of the one-line preview a collapsed row shows. The choice is saved as `ui-chat.reasoningDisclosure` through the same Host profile settings and applies immediately to already rendered rows without remounting them. It is independent of the display mode and of collapse timing. Expanded also keeps the Turn and its secondary groups open once it completes, so reasoning bodies stay visible with the process; only the reader's own action collapses them.
+
+A reader toggle wins over the preference until the enclosing Turn resets its disclosures, which happens when that Turn's process actually hides; the row then returns to the preference instead of the state the reader left it in. Streaming a body expanded renders its growing Markdown at the Markdown publication cadence rather than a single summary line, so a long reasoning body costs more main-thread time than the collapsed row. The reasoning body renderer, target, and preview rules are otherwise unchanged.
 
 ### Group-title rules
 

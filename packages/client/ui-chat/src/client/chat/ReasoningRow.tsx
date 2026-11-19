@@ -34,7 +34,8 @@ function latestCompletedParagraphFirstLine(text: string): string {
 }
 
 /**
- * Render one assistant reasoning block collapsed until the reader opens it. The
+ * Render one assistant reasoning block collapsed until the reader opens it, or
+ * open from the start when the reasoning-disclosure preference asks for it. The
  * collapsed summary omits double-asterisk markers; expanded content renders
  * the complete Markdown with secondary typography. A streaming preview advances
  * when a paragraph's first line completes. Mode changes toggle CSS display without unmounting
@@ -42,7 +43,7 @@ function latestCompletedParagraphFirstLine(text: string): string {
  * @param props.text - complete or streaming reasoning text.
  * @param props.running - whether this block is the streaming tail.
  * @param props.durationMs - recorded thinking time for this block's Step, when it is the Step's first material.
- * @param props.usePresentation - live display-policy selector for this reasoning row.
+ * @param props.usePresentation - live display-policy selector for this reasoning row, including its initial disclosure.
  * @param props.useDisclosure - independent open state with enclosing-Turn resets.
  * @param props.renderSlot - framework renderer for the standard reasoning Body Slot.
  * @param props.t - conversation locale seat for the disclosure and running status.
@@ -59,7 +60,7 @@ export const ReasoningRow = memo(function ReasoningRow({
   usePresentation: UsePresentation
   t: ChatViewSlotProps['t']
 } & Pick<PropsRenderSlots<'conversation.chat.reasoning.body'>, 'renderSlot'>) {
-  const { expanded, toggle } = useDisclosure()
+  const { expanded, toggle } = useDisclosure(usePresentation(policy => policy.revealReasoning))
   const { text, hidden } = useMemo(() => {
     const text = reasoningText(rawText)
     return { text, hidden: text !== rawText && text.trim() === '' }

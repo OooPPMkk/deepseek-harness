@@ -2,9 +2,9 @@
 import type {} from '@deepseek-ai/dsh-settings'
 
 import type { Volatile, Context } from '@deepseek-ai/cordis'
-import type { ChatSettings, CollapseTiming, FoldedReplies, LinkOpening, PerformanceUsageMode } from './chat-settings.ts'
+import type { ChatSettings, CollapseTiming, FoldedReplies, LinkOpening, PerformanceUsageMode, ReasoningDisclosure } from './chat-settings.ts'
 import z from '@deepseek-ai/schemastery'
-import { TRANSCRIPT_VIEW_FIELD } from './chat-settings.ts'
+import { REASONING_DISCLOSURE_FIELD, TRANSCRIPT_VIEW_FIELD } from './chat-settings.ts'
 
 import { ChatSettingsFields } from './chat-settings.ts'
 
@@ -22,6 +22,8 @@ export interface Config {
   collapseTiming: Volatile<CollapseTiming>
   /** Assistant replies kept visible while a completed Turn folds its process. */
   foldedReplies: Volatile<FoldedReplies>
+  /** Whether a reasoning body starts expanded before the reader toggles it. */
+  reasoningDisclosure: Volatile<ReasoningDisclosure>
   /** Performance and usage detail level. */
   performanceUsage: Volatile<PerformanceUsageMode>
   /** Default destination for Chat HTTP(S) links. */
@@ -33,6 +35,7 @@ export const Config = z.object({
   [TRANSCRIPT_VIEW_FIELD]: ChatSettingsFields[TRANSCRIPT_VIEW_FIELD].volatile(),
   collapseTiming: ChatSettingsFields.collapseTiming.volatile(),
   foldedReplies: ChatSettingsFields.foldedReplies.volatile(),
+  [REASONING_DISCLOSURE_FIELD]: ChatSettingsFields[REASONING_DISCLOSURE_FIELD].volatile(),
   performanceUsage: ChatSettingsFields['performanceUsage'].volatile(),
   linkOpening: ChatSettingsFields.linkOpening.volatile(),
 })

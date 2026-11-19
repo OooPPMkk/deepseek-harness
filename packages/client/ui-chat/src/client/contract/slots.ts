@@ -165,11 +165,13 @@ export type UseChatNodeTurnData = <Key extends Extract<keyof ConversationTurnDat
 ) => Readonly<ConversationTurnDataMap[Key]> | undefined
 
 /**
- * Subscribe to enclosing-Turn resets and own one initially collapsed disclosure.
- * Each invocation has independent open state; display-mode changes do not reset it.
+ * Subscribe to enclosing-Turn resets and own one disclosure.
+ * Each invocation has independent open state; display-mode changes do not reset it,
+ * while a reset restores the initial state the caller asked for.
+ * @param initiallyExpanded - whether the disclosure starts open before a reader toggle.
  * @returns the current open state, explicit setter, and toggle action.
  */
-export type UseDisclosure = () => {
+export type UseDisclosure = (initiallyExpanded?: boolean) => {
   readonly expanded: boolean
   /** @param open - whether this disclosure is expanded. */
   readonly setExpanded: (open: boolean) => void

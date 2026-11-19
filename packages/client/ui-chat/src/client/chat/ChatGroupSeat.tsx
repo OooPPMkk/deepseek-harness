@@ -135,7 +135,11 @@ export const ChatGroupSeat = memo(function ChatGroupSeat({ groupKey, useChatGrou
   const turn = useChatGroup(groupKey, group => group?.data.turn)
   const closed = useChatGroup(groupKey, group => group?.data.closed)
   const foldCompleted = props.usePresentation(policy => policy.foldCompletedTurns)
-  const { expanded: open, setExpanded: setOpen } = useDisclosure()
+  // Reasoning the reader asked to see expanded survives completion: detailed keeps
+  // historical groups flat, and the seeded open state covers modes whose grouping
+  // always shows a header. A manual header or Turn collapse still hides it.
+  const revealReasoning = props.usePresentation(policy => policy.revealReasoning)
+  const { expanded: open, setExpanded: setOpen } = useDisclosure(revealReasoning)
   const firstKey = members?.[0]?.key ?? ''
   const bottom = props.useChatNodeBottom(firstKey)
   const deferCollapse = bottom === true && props.deferCollapse
@@ -144,15 +148,16 @@ export const ChatGroupSeat = memo(function ChatGroupSeat({ groupKey, useChatGrou
     const location = node?.location
     return location?.kind === 'turn' || location?.kind === 'step' ? location.turn : undefined
   })
-  // Detailed keeps the latest completed Turn flat, like a running one, until the next input.
+  // Detailed keeps the latest completed Turn flat, like a running one, until the next input,
+  // and an expanded reasoning preference extends that flat presentation to historical Turns.
   const grouped = props.usePresentation(policy => policy.stepGrouping === 'collapsed'
-    || (policy.stepGrouping === 'history' && turnLocation?.status !== 'open' && !deferCollapse))
+    || (policy.stepGrouping === 'history' && turnLocation?.status !== 'open' && !deferCollapse && !revealReasoning))
   const reason = turnLocation?.end?.data.reason.kind
   const alwaysOpen = presentation?.turnClosed === false || presentation?.hasInterleavedInput === true
     || reason === 'aborted' || reason === 'interrupted' || reason === 'error'
   const spec = presentation?.spec
   const selectOpen = useCallback((state: Readonly<ChatStoreState>) => spec !== undefined
-    && turnProcessOpen(state, spec, deferCollapse), [spec, deferCollapse])
+    && turnProcessOpen(state, spec, deferCollapse || revealReasoning), [spec, deferCollapse, revealReasoning])
   const storedOpen = props.useStore(selectOpen)
   const outerHidden = foldCompleted && presentation?.turnClosed === true && spec !== undefined
     && !alwaysOpen && !storedOpen

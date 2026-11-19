@@ -9,7 +9,9 @@ import { zh } from '../src/client/locale.ts'
 import { AssistantMarkdown, type AssistantMarkdownProps } from '../src/client/chat/AssistantMarkdown.tsx'
 import { useDetailedPresentation } from './presentation-fixture.client.ts'
 import type { TranscriptViewMode } from '../src/chat-settings.ts'
-import { derivePresentationPolicy, type CollapseTiming, type FoldedReplies } from '../src/client/presentation-policy.ts'
+import {
+  derivePresentationPolicy, type CollapseTiming, type FoldedReplies, type ReasoningDisclosure,
+} from '../src/client/presentation-policy.ts'
 import { ReasoningRow } from '../src/client/chat/ReasoningRow.tsx'
 import { bindDisclosure, useDisclosure } from '../src/client/chat/use-disclosure.ts'
 import { useSearchableHidden } from '../src/client/chat/searchable-hidden.ts'
@@ -106,7 +108,7 @@ describe('AssistantMarkdown reasoning blocks', () => {
 
   it('keeps non-blank rows and their expanded bodies across modes, excluding them from the response part', () => {
     const mode = createSnapshotStore<TranscriptViewMode>('compact')
-    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(mode, createSnapshotStore<CollapseTiming>('completion'), createSnapshotStore<FoldedReplies>('all')))
+    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(mode, createSnapshotStore<CollapseTiming>('completion'), createSnapshotStore<FoldedReplies>('all'), createSnapshotStore<ReasoningDisclosure>('collapsed')))
     const blocks: AssistantMarkdownProps['blocks'] = [
       { kind: 'reasoning', text: '' },
       { kind: 'reasoning', text: 'Mode thought\n\nMode body' },
@@ -228,7 +230,7 @@ describe('ReasoningRow', () => {
     const reset = createSnapshotStore(0)
     const useDisclosure = bindDisclosure(reset)
     const mode = createSnapshotStore<TranscriptViewMode>('standard')
-    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(mode, createSnapshotStore<CollapseTiming>('completion'), createSnapshotStore<FoldedReplies>('all')))
+    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(mode, createSnapshotStore<CollapseTiming>('completion'), createSnapshotStore<FoldedReplies>('all'), createSnapshotStore<ReasoningDisclosure>('collapsed')))
     const view = render(<ReasoningRow renderSlot={renderSlot} useDisclosure={useDisclosure}
       text={'First line\n\nDetailed body'} running={false} usePresentation={usePresentation} t={t} />)
     const root = view.container.querySelector('[data-variant="think"]')!
@@ -254,9 +256,35 @@ describe('ReasoningRow', () => {
     expect(view.getByRole('button')).toBe(toggle)
   })
 
-  it('keeps a running preview enabled in Compact and hides it on settlement without removing it', () => {
-    const mode = createSnapshotStore<TranscriptViewMode>('compact')
-    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(mode, createSnapshotStore<CollapseTiming>('completion'), createSnapshotStore<FoldedReplies>('all')))
+  it('starts open from the reasoning preference, keeps a manual collapse, and follows a preference change', () => {
+    const reset = createSnapshotStore(0)
+    const useTurnDisclosure = bindDisclosure(reset)
+    const reasoning = createSnapshotStore<ReasoningDisclosure>('expanded')
+    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(
+      createSnapshotStore<TranscriptViewMode>('detailed'), createSnapshotStore<CollapseTiming>('completion'),
+      createSnapshotStore<FoldedReplies>('all'), reasoning,
+    ))
+    const props = { text: 'First line\n\nDetailed body', running: false, usePresentation, t }
+    const view = render(<ReasoningRow renderSlot={renderSlot} useDisclosure={useTurnDisclosure} {...props} />)
+    const toggle = view.getByRole('button')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(view.getByText('Detailed body')).toBeTruthy()
+
+    fireEvent.click(view.getByText('思考'))
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(view.queryByText('Detailed body')).toBeNull()
+
+    // A reset drops the manual choice and restores the preference.
+    act(() => { reset.set(1) })
+    expect(view.getByRole('button').getAttribute('aria-expanded')).toBe('true')
+
+    act(() => { reasoning.set('collapsed') })
+    expect(view.getByRole('button').getAttribute('aria-expanded')).toBe('false')
+    expect(view.queryByText('Detailed body')).toBeNull()
+  })
+
+  it('keeps a running preview enabled in Compact and hides it on settlement without removing it', () => {    const mode = createSnapshotStore<TranscriptViewMode>('compact')
+    const usePresentation = bindSnapshotSelector(derivePresentationPolicy(mode, createSnapshotStore<CollapseTiming>('completion'), createSnapshotStore<FoldedReplies>('all'), createSnapshotStore<ReasoningDisclosure>('collapsed')))
     const props = { text: 'First line\n', usePresentation, t }
     const view = render(<ReasoningRow renderSlot={renderSlot} useDisclosure={useDisclosure} {...props} running />)
     const summary = view.getByText('First line')

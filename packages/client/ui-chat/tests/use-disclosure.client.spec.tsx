@@ -96,4 +96,23 @@ describe('injected disclosure state', () => {
     act(() => { reset.set(2) })
     expect(second.getAttribute('aria-expanded')).toBe('false')
   })
+
+  it('opens initially when asked and restores that initial state after a reset', () => {
+    const reset = createSnapshotStore(0)
+    const useDisclosure = bindDisclosure(reset)
+    function InitiallyOpen({ label }: { label: string }) {
+      const { expanded, toggle } = useDisclosure(true)
+      return <button aria-expanded={expanded} onClick={toggle}>{label}</button>
+    }
+    const view = render(<InitiallyOpen label="Details" />)
+    const button = view.getByRole('button', { name: 'Details' })
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+    act(() => { reset.set(1) })
+    expect(button.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-expanded')).toBe('false')
+  })
 })
