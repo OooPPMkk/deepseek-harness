@@ -702,6 +702,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Folds logged plan/mode state, flushes user selections at turn boundaries, renders deployment-owned guidance, registers /plan, and keeps the plan-exit schema stable across transitions.',
   },
   {
+    key: 'sessionMode',
+    pkg: 'session-mode',
+    title: 'Collaboration modes',
+    mode: 'core',
+    consumers: ['client-ui-session-mode'],
+    note: 'Folds the recorded /mode command and plan/mode events into one per-Session mode, renders that mode\'s prompt section, and pins an optional permission preset while the mode is in force.',
+  },
+  {
     key: 'agentPresets',
     pkg: 'agent-preset-registry',
     title: 'Per-session agent composition',

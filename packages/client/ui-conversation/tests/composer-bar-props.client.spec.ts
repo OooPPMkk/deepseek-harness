@@ -15,6 +15,7 @@ it('accepts props supplied by existing composer bar registrations', () => {
     'conversation.input.attachments': { kind: 'single', scope: 'session-maybe' },
     'conversation.input.left': { kind: 'list', scope: 'session' },
     'conversation.input.model': { kind: 'single', scope: 'session' },
+    'conversation.input.mode': { kind: 'single', scope: 'session' },
     'conversation.input.overlay': { kind: 'list', scope: 'session' },
     'conversation.input.permission': { kind: 'single', scope: 'session' },
     'conversation.input.plan': { kind: 'single', scope: 'session' },

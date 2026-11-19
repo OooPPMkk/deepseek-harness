@@ -3450,6 +3450,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['RemoteError when the path is invalid, the query is cancelled, or native discovery fails.'],
       },
       {
+        signature: '@Remote(\'delete\') async delete(request: SessionDeleteRequest): Promise<SessionDeleteValue>',
+        description: 'Delete one stored Session and everything this Host holds for it. A live Agent is torn down first, so the durable write handle is closed before the log is removed; the removal is irreversible.',
+        parameters: [{ name: 'request', description: 'Session identity to delete.' }],
+        returns: 'the deleted identity.',
+      },
+      {
         signature: '@Remote(\'rename\') rename(request: SessionRenameRequest): Promise<SessionRenameValue>',
         description: 'Rename one Session after explicitly resuming it.',
         parameters: [{ name: 'request', description: 'Session identity and proposed title.' }],
@@ -3581,6 +3587,19 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'sessionMode',
+    summary: '`ctx.sessionMode`: owns the `mode:policy` prompt section, the `/mode` command, and the permission preset a mode pins while it is in force.',
+    description: '`ctx.sessionMode`: owns the `mode:policy` prompt section, the `/mode` command, and the permission preset a mode pins while it is in force. Prompt assembly fails while the projection reader is not ready; callers must await plugin activation before running an agent.',
+    methods: [
+      {
+        signature: 'get(session: Session): SessionModeProjection',
+        description: 'Read the mode in force and whether a selection is still settling.',
+        parameters: [{ name: 'session', description: 'the session to read.' }],
+        returns: 'the projection value clients render.',
+      },
+    ],
+  },
+  {
     key: 'sessionPersistence',
     summary: 'Durable append-only session storage addressed through per-session handles.',
     description: 'Durable append-only session storage addressed through per-session handles.\n\nStorage semantics shared by every backend: events are contiguous from seq 0 and never rewritten; a torn physical tail is never returned to a reader and is truncated by the write path before its first append; reads validate current-format records only and refuse unknown vocabulary fail-closed. `append` persists best-effort; `flush` — per handle or service-wide — is the durability barrier.\n\nVisibility: a created session is observable through `stat`/`list`/`open` in this process from the moment `create` resolves, even while a backend defers physical materialization (a pure optimization); other processes see the session only once it materializes, and a session that never materialized before a crash never existed. `SessionHandle.flush` forces materialization.\n\nFreshness: once an `append` or `flush` resolves, reads started afterwards on this backend instance observe at least that prefix.',
@@ -3622,6 +3641,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'List every stored session visible to this process, in no promised order.',
         parameters: [{ name: 'options', description: 'optional cancellation.' }],
         returns: 'one snapshot per stored session.',
+      },
+      {
+        signature: 'abstract delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void>',
+        description: 'Remove one stored Session\'s durable artifacts.\n\nDeletion is irreversible and is the only operation that retracts a stored Session; a backend that keeps one artifact per Session removes that artifact together with its ownership record and any stale temporary or earlier-generation files beside it. A backend with no artifact for the id throws SessionPersistenceNotFoundError.\n\nThe stored Session must be idle: the caller closes every handle first. A backend refuses while any handle in this process still serves the Session, and while a writer in another process holds ownership, so a deletion can never unlink a log another writer is appending to.',
+        parameters: [{ name: 'id', description: 'the stored Session to remove.' }, { name: 'options', description: 'optional cancellation observed before the removal starts.' }],
+        throws: ['{SessionPersistenceNotFoundError} when the Session does not exist.', '{SessionDeleteBusyError} when a handle or a foreign writer still owns the Session.'],
       },
     ],
   },
@@ -9867,6 +9892,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionCreateValue {\n    readonly sessionId: SessionId;\n    readonly agentPreset?: string;\n}',
   },
   {
+    name: 'SessionDeleteRequest',
+    declaration: 'export interface SessionDeleteRequest {\n    readonly sessionId: SessionId;\n}',
+  },
+  {
+    name: 'SessionDeleteValue',
+    declaration: 'export interface SessionDeleteValue {\n    readonly sessionId: SessionId;\n}',
+  },
+  {
     name: 'SessionEndInput',
     declaration: 'export interface SessionEndInput {\n    reason: \'clear\' | \'logout\' | \'prompt_input_exit\' | \'resume\' | \'other\';\n    sessionId: string;\n}',
   },
@@ -10099,6 +10132,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SessionMessageProjectionContext {\n    nodes: readonly SessionSeq[];\n    events: readonly SessionEvent[];\n    baseSeq: SessionLogOffset;\n    messages: ReadonlyMap<SessionSeq, Message>;\n}',
   },
   {
+    name: 'SessionModeProjection',
+    declaration: 'export interface SessionModeProjection {\n    mode: string;\n    pending: boolean;\n    pinned: string | null;\n}',
+  },
+  {
     name: 'SessionObservation',
     declaration: 'export interface SessionObservation extends Disposable {\n    readonly source: \'live\' | \'prepared\';\n    readonly header: SessionHeader;\n    readonly inheritedEventCount: SessionLogOffsetType;\n    readonly persistedEventCount?: SessionLogOffsetType;\n    readonly events: readonly SessionEvent[];\n    readonly cursor: SessionSeqCursor;\n    readonly revision?: SessionPersistenceRevision;\n    readonly projections?: ProjectionSnapshot;\n    retain(): SessionObservation;\n}',
   },
@@ -10133,6 +10170,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionPersistenceCreateOptions',
     declaration: 'export interface SessionPersistenceCreateOptions {\n    readonly signal?: AbortSignal;\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly parentSource?: {\n        readonly sessionId: SessionId;\n        readonly endSeq: SessionLogOffset;\n        readonly events: readonly SessionEvent[];\n    };\n}',
+  },
+  {
+    name: 'SessionPersistenceDeleteOptions',
+    declaration: 'export interface SessionPersistenceDeleteOptions {\n    readonly signal?: AbortSignal;\n}',
   },
   {
     name: 'SessionPersistenceListOptions',

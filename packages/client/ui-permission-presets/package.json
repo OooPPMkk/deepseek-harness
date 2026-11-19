@@ -64,6 +64,7 @@
     "@deepseek-ai/dsh-client-ui-input-trigger": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@deepseek-ai/dsh-permission-presets": "workspace:*",
+    "@deepseek-ai/dsh-session-mode": "workspace:*",
     "clsx": "^2.0.0",
     "react": "^18.2.0",
     "@deepseek-ai/dsh-client-ui-renderer": "workspace:*",

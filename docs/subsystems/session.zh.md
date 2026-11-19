@@ -972,6 +972,15 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
 @Remote('workspacePathApplications') async workspacePathApplications( request: { readonly path: string }, signal: AbortSignal, ): Promise<readonly SessionWorkspacePathApplication[]>
 
 /**
+ * Delete one stored Session and everything this Host holds for it. A live
+ * Agent is torn down first, so the durable write handle is closed before the
+ * log is removed; the removal is irreversible.
+ * @param request - Session identity to delete.
+ * @returns the deleted identity.
+ */
+@Remote('delete') async delete(request: SessionDeleteRequest): Promise<SessionDeleteValue>
+
+/**
  * Rename one Session after explicitly resuming it.
  * @param request - Session identity and proposed title.
  * @returns the accepted title and durable event sequence.
@@ -1112,6 +1121,24 @@ registerExclusion(exclude: SessionLogUploadExclusion): () => Promise<void>
 ```
 
 Source: [`packages/session/session-log-deepseek/src/index.ts`](../../packages/session/session-log-deepseek/src/index.ts)
+
+<a id="ctxsessionmode--sessionmodecontroller"></a>
+
+### `ctx.sessionMode` — `SessionModeController`
+
+`ctx.sessionMode`: owns the `mode:policy` prompt section, the `/mode` command, and the permission preset a mode pins while it is in force. Prompt assembly fails while the projection reader is not ready; callers must await plugin activation before running an agent.
+
+```ts cordis-catalog
+/**
+ * Read the mode in force and whether a selection is still settling.
+ *
+ * @param session - the session to read.
+ * @returns the projection value clients render.
+ */
+get(session: Session): SessionModeProjection
+```
+
+Source: [`packages/interaction/session-mode/src/index.ts`](../../packages/interaction/session-mode/src/index.ts)
 
 <a id="ctxsessions--sessionstore"></a>
 

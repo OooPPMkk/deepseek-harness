@@ -505,6 +505,7 @@
     { "path": "./packages/interaction/user-questions" },
     { "path": "./packages/interaction/user-approval" },
     { "path": "./packages/interaction/permission-presets" },
+    { "path": "./packages/interaction/session-mode" },
     { "path": "./packages/experimental/auto-review" },
     { "path": "./packages/experimental/claude-code-mods" },
     { "path": "./packages/core/tools" },

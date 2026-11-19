@@ -117,6 +117,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   sessionFeedback: 'feedback.md',
   permissionPresets: 'permission-presets.md',
   planMode: 'plan.md',
+  sessionMode: 'session.md',
   terminals: 'terminal.md',
   sandbox: 'sandbox.md',
   sandboxPolicy: 'sandbox.md',
@@ -568,6 +569,8 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   SessionControlFrame: 'session.md',
   SessionCreateRequest: 'session.md',
   SessionCreateValue: 'session.md',
+  SessionDeleteRequest: 'session.md',
+  SessionDeleteValue: 'session.md',
   SessionEvent: 'session.md',
   SessionFollowFrame: 'session.md',
   SessionFollowRequest: 'session.md',
@@ -740,6 +743,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   SessionAccess: 'persistence.md',
   SessionHandle: 'persistence.md',
   SessionPersistenceCreateOptions: 'persistence.md',
+  SessionPersistenceDeleteOptions: 'persistence.md',
   SessionPersistenceOpenOptions: 'persistence.md',
   SessionPersistenceStatOptions: 'persistence.md',
   SessionPersistenceListOptions: 'persistence.md',
@@ -1102,6 +1106,7 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  SessionModeProjection: 'the projected collaboration mode is owned by packages/interaction/session-mode/README.md',
   AnyConnectorAccountView: 'generic connector account view is owned by packages/client/ui-connector-account/README.md',
   ConnectorAccountRegistration: 'Plugins page account registration is owned by packages/client/ui-connector-account/README.md',
   ConnectorAccountsView: 'registered account stream item is owned by packages/client/ui-connector-account/README.md',

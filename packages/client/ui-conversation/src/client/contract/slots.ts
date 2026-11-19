@@ -359,6 +359,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.input.plan': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
     /**
+     * Collaboration-mode control inside the composer tool row; fixed overlays must portal to
+     * the document body because the docked composer contains them.
+     */
+    'conversation.input.mode': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
+    /**
      * Current-session permission control inside the composer tool row; fixed overlays must portal
      * to the document body because the docked composer contains them.
      */
@@ -674,6 +679,7 @@ const baseComposerChildren = {
   'conversation.input.permission': { kind: 'single', scope: 'session' },
   'conversation.input.left': { kind: 'list', scope: 'session' },
   'conversation.input.plan': { kind: 'single', scope: 'session' },
+  'conversation.input.mode': { kind: 'single', scope: 'session' },
   'conversation.input.right': { kind: 'list', scope: 'session' },
   'conversation.input.model': { kind: 'single', scope: 'session' },
   'conversation.input.activity': { kind: 'single', scope: 'session' },
