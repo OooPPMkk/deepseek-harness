@@ -12,6 +12,11 @@ export const zh = {
   'navigation.label': '导航',
   'panels.more': '更多',
   'version.copied': '版本号复制成功',
+  'releaseNotes.open': '更新记录',
+  'releaseNotes.title': '本地更新记录',
+  'releaseNotes.close': '关闭',
+  'releaseNotes.entries': '更新日期',
+  'releaseNotes.empty': '暂无更新记录',
 } satisfies Record<string, string>
 
 /** The sidebar namespace key union. */
@@ -29,6 +34,11 @@ export const en = {
   'navigation.label': 'Navigation',
   'panels.more': 'More',
   'version.copied': 'Version copied',
+  'releaseNotes.open': 'Update record',
+  'releaseNotes.title': 'Local update record',
+  'releaseNotes.close': 'Close',
+  'releaseNotes.entries': 'Update dates',
+  'releaseNotes.empty': 'No updates recorded yet',
 } satisfies Record<SidebarKey, string>
 
 /** Japanese copy, checked against the English keys. */
@@ -43,6 +53,11 @@ export const ja = {
   'navigation.label': 'ナビゲーション',
   'panels.more': 'その他',
   'version.copied': 'バージョンをコピーしました',
+  'releaseNotes.open': '更新履歴',
+  'releaseNotes.title': 'ローカル更新履歴',
+  'releaseNotes.close': '閉じる',
+  'releaseNotes.entries': '更新日',
+  'releaseNotes.empty': '更新履歴はまだありません',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -57,6 +72,11 @@ export const es = {
   'navigation.label': 'Navegación',
   'panels.more': 'Más',
   'version.copied': 'Versión copiada',
+  'releaseNotes.open': 'Registro de cambios',
+  'releaseNotes.title': 'Registro de cambios local',
+  'releaseNotes.close': 'Cerrar',
+  'releaseNotes.entries': 'Fechas de actualización',
+  'releaseNotes.empty': 'Todavía no hay actualizaciones registradas',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -71,6 +91,11 @@ export const fr = {
   'navigation.label': 'Navigation',
   'panels.more': 'Plus',
   'version.copied': 'Version copiée',
+  'releaseNotes.open': 'Journal des mises à jour',
+  'releaseNotes.title': 'Journal local des mises à jour',
+  'releaseNotes.close': 'Fermer',
+  'releaseNotes.entries': 'Dates des mises à jour',
+  'releaseNotes.empty': "Aucune mise à jour enregistrée pour l'instant",
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -85,6 +110,11 @@ export const de = {
   'navigation.label': 'Navigation',
   'panels.more': 'Mehr',
   'version.copied': 'Version kopiert',
+  'releaseNotes.open': 'Änderungsprotokoll',
+  'releaseNotes.title': 'Lokales Änderungsprotokoll',
+  'releaseNotes.close': 'Schließen',
+  'releaseNotes.entries': 'Änderungsdaten',
+  'releaseNotes.empty': 'Noch keine Änderungen erfasst',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -99,6 +129,11 @@ export const ru = {
   'navigation.label': 'Навигация',
   'panels.more': 'Ещё',
   'version.copied': 'Версия скопирована',
+  'releaseNotes.open': 'Журнал обновлений',
+  'releaseNotes.title': 'Локальный журнал обновлений',
+  'releaseNotes.close': 'Закрыть',
+  'releaseNotes.entries': 'Даты обновлений',
+  'releaseNotes.empty': 'Обновления пока не записаны',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -113,4 +148,9 @@ export const pt = {
   'navigation.label': 'Navegação',
   'panels.more': 'Mais',
   'version.copied': 'Versão copiada',
+  'releaseNotes.open': 'Registro de atualizações',
+  'releaseNotes.title': 'Registro local de atualizações',
+  'releaseNotes.close': 'Fechar',
+  'releaseNotes.entries': 'Datas das atualizações',
+  'releaseNotes.empty': 'Nenhuma atualização registrada ainda',
 } satisfies Record<keyof typeof en, string>

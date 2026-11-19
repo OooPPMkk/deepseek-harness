@@ -333,6 +333,32 @@
   -webkit-app-region: no-drag;
 }
 
+/* Brand and the update-record control share one inline group: the group claims
+   the row's free space, so the icon lands immediately right of the version text
+   instead of at the row's far edge, and the brand keeps its own inline size. */
+.brandRow {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.brandRow .brand {
+  flex: 0 1 auto;
+}
+
+/* Sized for the 12px badge line it sits beside; it inherits the brand's ink
+   rather than the secondary icon-button tone, so the pair reads as one control
+   group. The drag-row rule never subtracts it: the row is a drag surface.
+   Both facts need to outrank `.iconButton`, hence the doubled selector. */
+.iconButton.releaseNotes {
+  width: 22px;
+  height: 22px;
+  color: var(--dsw-alias-label-primary);
+  -webkit-app-region: no-drag;
+}
+
 .localBuildTitle {
   font-size: 12px;
   line-height: 13px;

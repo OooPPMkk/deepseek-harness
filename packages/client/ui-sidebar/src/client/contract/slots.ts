@@ -14,6 +14,7 @@ import type {
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
+import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ProductEventMap } from '@deepseek-ai/dsh-client-product-analytics/client'
 
@@ -237,6 +238,8 @@ export type SidebarRootInjected = {
     entryPins: ObservableSnapshot<readonly string[]>
     /** Whether `sidebar.panellist.actions` has registrations. */
     entryActions: ObservableSnapshot<boolean>
+    /** Active locale, read so the local update record follows the reader's language. */
+    locale: ObservableSnapshot<LocaleSnapshot>
   }
 }
 

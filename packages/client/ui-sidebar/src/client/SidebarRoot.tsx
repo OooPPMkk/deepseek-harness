@@ -21,7 +21,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
-  FishLogo, IconAppsAddOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
+  FishLogo, IconAppsAddOutlineRegular, IconListPenOutlineRegular, IconNewChatOutlineMedium, IconNewChatOutlineRegular,
   IconPanelLeftOutlineRegular, IconPinFillRegular, focusWithoutRing, isBehindModal, isDarwinDesktop, Menu, ShortcutKeys, Toast,
   Tooltip, useModalLayer, writeClipboard,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -31,6 +31,7 @@ import type {
   SidebarSectionOwnerProps,
 } from './contract/slots.ts'
 import { FIXED_PANEL_ID } from './panel-pins.ts'
+import { ReleaseNotesModal } from './ReleaseNotesModal.tsx'
 import { createScrollHandoff } from './scroll-handoff.ts'
 import css from './SidebarRoot.module.css'
 
@@ -162,6 +163,7 @@ export function SidebarRoot({
   useEntryPins,
   useEntryActions,
   useShortcuts,
+  useLocale,
   usePanelInfo,
   t,
   renderSlot,
@@ -266,6 +268,8 @@ export function SidebarRoot({
   }, [pointerInside])
 
   const buildVersion = localBuildVersion()
+  const locale = useLocale(snapshot => snapshot.active)
+  const [releaseNotesOpen, setReleaseNotesOpen] = useState(false)
   // The local-build fallbacks copy the badge text; the brand button below
   // skips New Session for clicks inside them. The click still bubbles, so
   // document-level outside-click listeners see it.
@@ -358,7 +362,7 @@ export function SidebarRoot({
               </span>
             </span>
           )
-          return darwinDesktop || !canStartSession
+          const brand = darwinDesktop || !canStartSession
             ? <span className={clsx(css.brand, css.wide)}>{identity}</span>
             : (
               <button
@@ -374,6 +378,28 @@ export function SidebarRoot({
                 {identity}
               </button>
             )
+          // The update record sits beside the local-build badge and only exists
+          // for a local build: a release carries a version without a record to
+          // show. It stays a sibling of the brand control — the brand is a
+          // button while Sessions can start, and nested buttons are invalid.
+          return (
+            <div className={css.brandRow}>
+              {brand}
+              {buildVersion !== undefined && (
+                <Tooltip label={t('releaseNotes.open')} delayMs={500} side="right" portal>
+                  <button
+                    type="button"
+                    className={clsx(css.iconButton, css.releaseNotes)}
+                    aria-label={t('releaseNotes.open')}
+                    data-release-notes
+                    onClick={() => { setReleaseNotesOpen(true) }}
+                  >
+                    <IconListPenOutlineRegular size={15} />
+                  </button>
+                </Tooltip>
+              )}
+            </div>
+          )
         })()}
         {!darwinDesktop && toggle}
       </div>
@@ -463,6 +489,13 @@ export function SidebarRoot({
       {copiedToast !== null && (
         <Toast key={copiedToast} tone="success" text={t('version.copied')} onDone={() => { setCopiedToast(null) }} />
       )}
+
+      <ReleaseNotesModal
+        open={releaseNotesOpen}
+        onClose={() => { setReleaseNotesOpen(false) }}
+        locale={locale}
+        t={t}
+      />
 
       {/* Footer actions stack above Settings in both sidebar widths. */}
       <div className={css.footArea}>
