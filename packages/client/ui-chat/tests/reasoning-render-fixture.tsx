@@ -10,7 +10,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsRenderFactories, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import { en, NS, zh } from '../src/client/locale.ts'
-import { derivePresentationPolicy, type CollapseTiming, type FoldedReplies } from '../src/client/presentation-policy.ts'
+import { derivePresentationPolicy, type CollapseTiming, type FoldedReplies, type ReasoningDisclosure } from '../src/client/presentation-policy.ts'
 import { registerChatNodeRenderers } from '../src/client/chat/register-node-renderers.ts'
 import type { PerformanceUsageMode, TranscriptViewMode } from '../src/chat-settings.ts'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -49,6 +49,7 @@ export async function createReasoningRenderFixture(language = 'zh') {
           createSnapshotStore<TranscriptViewMode>('detailed'),
           createSnapshotStore<CollapseTiming>('completion'),
           createSnapshotStore<FoldedReplies>('all'),
+          createSnapshotStore<ReasoningDisclosure>('collapsed'),
         ))
     },
   })

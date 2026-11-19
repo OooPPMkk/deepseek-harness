@@ -1,7 +1,9 @@
 import { Context } from '@deepseek-ai/cordis'
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import * as HostPlugin from '../src/index.ts'
 import { liveConfig, omitsGeneratedPage } from '../../../settings/settings/tests/live-config.ts'
+import { configurationFixture } from '../../../settings/settings/tests/configuration-fixture.ts'
 import { plainConfig } from '../../../settings/settings/src/schema.ts'
 import {
   Config, apply,
@@ -16,10 +18,12 @@ describe('ui-chat Host settings', () => {
 
     expect(plainConfig(configuration.fiber.effectiveConfig)).toEqual({
       performanceUsage: 'detailed', linkOpening: 'sidebar', collapseTiming: 'completion', foldedReplies: 'all',
+      reasoningDisclosure: 'collapsed',
     })
     await configuration.update({ transcriptView: 'normal' })
     expect(plainConfig(configuration.fiber.effectiveConfig)).toEqual({
       transcriptView: 'normal', performanceUsage: 'detailed', linkOpening: 'sidebar', collapseTiming: 'completion', foldedReplies: 'all',
+      reasoningDisclosure: 'collapsed',
     })
     for (const mode of ['expanded', 'compact', 'standard', 'detailed', 'verbose']) {
       await configuration.update({ transcriptView: mode })
@@ -35,6 +39,9 @@ describe('ui-chat Host settings', () => {
     await configuration.update({ linkOpening: 'new-tab' })
     expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({ linkOpening: 'new-tab' })
     await expect(configuration.update({ linkOpening: 'popup' })).rejects.toThrow()
+    await configuration.update({ reasoningDisclosure: 'expanded' })
+    expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({ reasoningDisclosure: 'expanded' })
+    await expect(configuration.update({ reasoningDisclosure: 'open' })).rejects.toThrow()
 
     await fiber.dispose()
   })
@@ -73,6 +80,21 @@ describe('ui-chat Host settings', () => {
     const ctx = new Context()
     await expect(ctx.plugin({ Config, apply }).await()).resolves.toBeDefined()
   })
+})
+
+it('persists the reasoning disclosure through the settings service', async () => {
+  // The browser writes this preference through `settings.mutate`, whose volatile-path
+  // gate rejects any field the running Host schema does not declare.
+  const { ctx, profile } = await configurationFixture({ schema: Config, apply })
+  const value = () => ctx.settings.describe({ redactSecrets: true }).find(row => row.ns === 'first')!.value
+  expect(value()).toMatchObject({ reasoningDisclosure: 'collapsed' })
+  await ctx.settings.mutate('first', [{ op: 'set', path: ['reasoningDisclosure'], value: 'expanded' }])
+  expect(value()).toMatchObject({ reasoningDisclosure: 'expanded' })
+  expect(readFileSync(profile.patchPath, 'utf8')).toContain('reasoningDisclosure: expanded')
+  await expect(ctx.settings.mutate('first', [{ op: 'set', path: ['reasoningDisclosure'], value: 'open' }]))
+    .rejects.toThrow()
+  await ctx.settings.mutate('first', [{ op: 'unset', path: ['reasoningDisclosure'] }])
+  expect(value()).toMatchObject({ reasoningDisclosure: 'collapsed' })
 })
 
 it('keeps its own instance off the generated Settings pages', () => omitsGeneratedPage(ctx => ctx.plugin(HostPlugin)))

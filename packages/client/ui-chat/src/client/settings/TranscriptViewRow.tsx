@@ -4,7 +4,7 @@ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { TRANSCRIPT_VIEW_MODES, type TranscriptViewMode } from '../../chat-settings.ts'
 import type { ChatKey } from '../locale.ts'
-import { COLLAPSE_TIMINGS, FOLDED_REPLIES, type CollapseTiming, type FoldedReplies } from '../presentation-policy.ts'
+import { COLLAPSE_TIMINGS, FOLDED_REPLIES, REASONING_DISCLOSURES, type CollapseTiming, type FoldedReplies, type ReasoningDisclosure } from '../presentation-policy.ts'
 import { PreferenceRow } from './PreferenceRow.tsx'
 
 /** Registration-side work-details preference face. */
@@ -16,6 +16,8 @@ export interface TranscriptViewRowInjected {
     collapseTiming: SnapshotStore<CollapseTiming>
     /** Persisted folded-reply choice bound as useFoldedReplies. */
     foldedReplies: SnapshotStore<FoldedReplies>
+    /** Persisted reasoning presentation bound as useReasoningDisclosure. */
+    reasoningDisclosure: SnapshotStore<ReasoningDisclosure>
   }
   /** Change the work-details presentation. */
   setTranscriptView: (mode: TranscriptViewMode) => void
@@ -23,6 +25,8 @@ export interface TranscriptViewRowInjected {
   setCollapseTiming: (timing: CollapseTiming) => void
   /** Persist which Assistant replies stay visible in a folded Turn. */
   setFoldedReplies: (replies: FoldedReplies) => void
+  /** Persist how a reasoning body presents before the reader toggles it. */
+  setReasoningDisclosure: (disclosure: ReasoningDisclosure) => void
 }
 
 /** Full Settings-row props. */
@@ -48,18 +52,25 @@ const FOLDED_REPLY_LABELS = {
   final: 'settings.foldedReplies.final',
 } as const satisfies Record<FoldedReplies, ChatKey>
 
+const REASONING_LABELS = {
+  collapsed: 'settings.reasoning.collapsed',
+  expanded: 'settings.reasoning.expanded',
+} as const satisfies Record<ReasoningDisclosure, ChatKey>
+
 /**
- * Render the independent, Host-backed work-details, collapse-timing, and folded-reply selectors.
+ * Render the independent, Host-backed work-details, collapse-timing, folded-reply, and reasoning selectors.
  * Verbose never folds a Turn, so it omits the folded-reply selector.
  * @param props - composed Settings slot props.
  * @returns the preference row.
  */
 export function TranscriptViewRow({
-  useTranscriptView, setTranscriptView, useCollapseTiming, setCollapseTiming, useFoldedReplies, setFoldedReplies, t,
+  useTranscriptView, setTranscriptView, useCollapseTiming, setCollapseTiming, useFoldedReplies, setFoldedReplies,
+  useReasoningDisclosure, setReasoningDisclosure, t,
 }: TranscriptViewRowProps) {
   const mode = useTranscriptView(value => value)
   const timing = useCollapseTiming(value => value)
   const replies = useFoldedReplies(value => value)
+  const reasoning = useReasoningDisclosure(value => value)
   return (
     <>
       <PreferenceRow
@@ -88,6 +99,14 @@ export function TranscriptViewRow({
           onSelect={(value) => { setFoldedReplies(value as FoldedReplies) }}
         />
       )}
+      <PreferenceRow
+        title={t('settings.reasoning.title')}
+        description={t('settings.reasoning.description')}
+        value={reasoning}
+        selectedLabel={t(REASONING_LABELS[reasoning])}
+        options={REASONING_DISCLOSURES.map(id => ({ id, label: t(REASONING_LABELS[id]) }))}
+        onSelect={(value) => { setReasoningDisclosure(value as ReasoningDisclosure) }}
+      />
     </>
   )
 }

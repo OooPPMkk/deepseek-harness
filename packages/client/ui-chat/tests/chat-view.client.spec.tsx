@@ -39,7 +39,7 @@ import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { PartialArguments } from '@deepseek-ai/dsh-util-values'
 import { createChatStore } from '../src/client/stores.ts'
-import { derivePresentationPolicy, type CollapseTiming, type FoldedReplies } from '../src/client/presentation-policy.ts'
+import { derivePresentationPolicy, type CollapseTiming, type FoldedReplies, type ReasoningDisclosure } from '../src/client/presentation-policy.ts'
 import { CHAT_FLOW_INJECT, CHAT_NODE_INJECT } from '../src/client/apply.ts'
 import { ChatView } from '../src/client/chat/ChatView.tsx'
 import { ChatFlow } from '../src/client/chat/ChatFlow.tsx'
@@ -461,6 +461,7 @@ function makeHarness(
   const transcriptView = createSnapshotStore<TranscriptViewMode>('compact')
   const collapseTiming = createSnapshotStore<CollapseTiming>('completion')
   const foldedReplies = createSnapshotStore<FoldedReplies>('all')
+  const reasoningDisclosure = createSnapshotStore<ReasoningDisclosure>('collapsed')
   const performanceUsage = createSnapshotStore<'compact' | 'detailed'>('detailed')
   const originRenderer = createSnapshotStore<UserChainState>({ renderer: undefined })
   const t = makeTranslate(zh, commonZh)
@@ -572,7 +573,7 @@ function makeHarness(
     actions: chat.actions,
     useInteractionIds: bindSnapshotSelector(createSnapshotStore<readonly string[]>([])),
     dispatchInteraction: () => null,
-    usePresentation: bindSnapshotSelector(derivePresentationPolicy(transcriptView, collapseTiming, foldedReplies)),
+    usePresentation: bindSnapshotSelector(derivePresentationPolicy(transcriptView, collapseTiming, foldedReplies, reasoningDisclosure)),
     // The fixture implements the concrete flow dispatch behind the generic slot signature.
     renderSlot: renderSlot as ChatViewSlotProps['renderSlot'],
     SessionProvider: SessionProviderStub,
@@ -624,6 +625,7 @@ function makeHarness(
     },
     setTranscriptView: (mode: TranscriptViewMode) => { transcriptView.set(mode) },
     setCollapseTiming: (timing: CollapseTiming) => { collapseTiming.set(timing) },
+    setReasoningDisclosure: (value: ReasoningDisclosure) => { reasoningDisclosure.set(value) },
     setFoldedReplies: (replies: FoldedReplies) => { foldedReplies.set(replies) },
     setNodeRenderer: (renderer: NodeRenderer) => { nodeSlotOverride = renderer },
     setImageRenderer: (renderer: ImageRenderer) => { imageSlotOverride = renderer },
@@ -1040,6 +1042,52 @@ describe('ChatView', () => {
       expect(view.container.querySelector('[data-chat-motion]')).toBeNull()
     },
   )
+
+  it.each(['compact', 'standard', 'detailed'] as const)(
+    'seeds %s process groups open while thinking content stays expanded', (mode) => {
+      const h = makeCompletionHarness(mode)
+      act(() => { h.setReasoningDisclosure('expanded') })
+      const view = render(<h.ChatView {...h.props} />)
+      const roots = [...view.container.querySelectorAll<HTMLElement>('[data-chat-group-key]')]
+      act(() => { h.complete() })
+      expect([...view.container.querySelectorAll('[data-chat-group-key]')]).toEqual(roots)
+      expect(roots.map(root => root.closest('[hidden]'))).toEqual([null, null])
+      expect(roots.map(root => root.querySelector('[data-step-process-body]')?.hasAttribute('hidden')))
+        .toEqual([false, false])
+      const control = view.container.querySelector<HTMLButtonElement>('[data-turn-process="2"]')!
+      expect(control.getAttribute('aria-expanded')).toBe('true')
+      const think = view.getByText('current analysis').closest<HTMLElement>('[data-variant="think"]')!
+      expect(view.getByText('current analysis').closest('[hidden]')).toBeNull()
+      expect(think.getAttribute('data-expanded')).toBe('true')
+      // The reasoning row keeps its own manual disclosure while the Turn stays open.
+      fireEvent.click(think.querySelector<HTMLElement>('[data-disclosure-row]')!)
+      expect(control.getAttribute('aria-expanded')).toBe('true')
+      expect(think.hasAttribute('data-expanded')).toBe(false)
+      fireEvent.click(think.querySelector<HTMLElement>('[data-disclosure-row]')!)
+      expect(think.getAttribute('data-expanded')).toBe('true')
+      // A reader's Turn collapse still wins over the seeded presentation.
+      fireEvent.click(control)
+      expect(control.getAttribute('aria-expanded')).toBe('false')
+      expect(view.getByText('current answer').closest('[hidden]')).toBeNull()
+      expect(view.getByText('current analysis').closest('[hidden]')).not.toBeNull()
+      fireEvent.click(control)
+      expect(control.getAttribute('aria-expanded')).toBe('true')
+      if (mode === 'detailed') {
+        // Only the flat detailed rows come back with the Turn; grouped modes keep their own header state.
+        expect(view.getByText('current analysis').closest('[hidden]')).toBeNull()
+      }
+    },
+  )
+
+  it('keeps the folded historical Turn when the thinking preference stays collapsed', () => {
+    const h = makeCompletionHarness('detailed')
+    const view = render(<h.ChatView {...h.props} />)
+    const roots = [...view.container.querySelectorAll<HTMLElement>('[data-chat-group-key]')]
+    act(() => { h.complete() })
+    expect(roots.map(root => root.hasAttribute('hidden'))).toEqual([true, true])
+    expect(view.container.querySelector<HTMLButtonElement>('[data-turn-process="2"]')!.getAttribute('aria-expanded'))
+      .toBe('false')
+  })
 
   it.each(['compact', 'standard', 'detailed', 'verbose'] as const)(
     'keeps only the latest completed Turn expanded with next-input timing in %s', (mode) => {

@@ -32,6 +32,18 @@ export type FoldedReplies = typeof FOLDED_REPLIES[number]
 /** Keep every Assistant reply visible when no folded-reply preference is saved. */
 export const DEFAULT_FOLDED_REPLIES: FoldedReplies = 'all'
 
+/** Field carrying how a reasoning body presents before the reader toggles it. */
+export const REASONING_DISCLOSURE_FIELD = 'reasoningDisclosure'
+
+/** Reasoning body states a reader can choose; an explicit toggle overrides either until the enclosing Turn resets it. */
+export const REASONING_DISCLOSURES = ['collapsed', 'expanded'] as const
+
+/** How a reasoning body presents before the reader toggles it. */
+export type ReasoningDisclosure = typeof REASONING_DISCLOSURES[number]
+
+/** Keep reasoning collapsed when no disclosure preference is saved. */
+export const DEFAULT_REASONING_DISCLOSURE: ReasoningDisclosure = 'collapsed'
+
 /** Work-details presentation modes a user can choose. */
 export const TRANSCRIPT_VIEW_MODES = ['compact', 'standard', 'detailed', 'verbose'] as const
 
@@ -78,6 +90,8 @@ export interface ChatSettings {
   collapseTiming?: CollapseTiming
   /** Replies kept visible in a folded Turn; absence keeps every reply. */
   foldedReplies?: FoldedReplies
+  /** Reasoning body presentation; absence keeps every row collapsed. */
+  reasoningDisclosure?: ReasoningDisclosure
   /** Detail level for composer statistics and completed-Turn usage. */
   performanceUsage: PerformanceUsageMode
   /** Default destination for Chat HTTP(S) links. */
@@ -88,6 +102,7 @@ export interface ChatSettings {
 export const ChatSettingsFields = {
   [COLLAPSE_TIMING_FIELD]: z.union([...COLLAPSE_TIMINGS]).default(DEFAULT_COLLAPSE_TIMING),
   [FOLDED_REPLIES_FIELD]: z.union([...FOLDED_REPLIES]).default(DEFAULT_FOLDED_REPLIES),
+  [REASONING_DISCLOSURE_FIELD]: z.union([...REASONING_DISCLOSURES]).default(DEFAULT_REASONING_DISCLOSURE),
   linkOpening: z.union(['sidebar', 'new-tab']).default(DEFAULT_LINK_OPENING),
   performanceUsage: z.union([...PERFORMANCE_USAGE_MODES]).default(DEFAULT_PERFORMANCE_USAGE),
   // Missing and unrecognized modes defer to the client's default.

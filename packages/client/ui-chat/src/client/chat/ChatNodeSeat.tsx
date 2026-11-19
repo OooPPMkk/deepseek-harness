@@ -58,8 +58,12 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
   const turn = turnOf(routedNode)
   const processPresentation = useChatNodeProcess(nodeKey)
   const processSpec = processPresentation?.spec
+  // An expanded reasoning preference seeds this range open: the reader asked to
+  // follow reasoning bodies, which a completion-time fold would hide again. An
+  // explicit collapse still wins, because it is stored rather than seeded.
+  const revealReasoning = usePresentation(policy => policy.revealReasoning)
   const storedOpen = useStore(state => processSpec !== undefined
-    && turnProcessOpen(state, processSpec, bottom === true && deferCollapse))
+    && turnProcessOpen(state, processSpec, (bottom === true && deferCollapse) || revealReasoning))
   const liveProcess = processPresentation !== undefined && !processPresentation.turnClosed
   const interleavedInput = processPresentation?.hasInterleavedInput === true
   const alwaysOpen = liveProcess || interleavedInput || turnProcessAlwaysOpen(routedNode)

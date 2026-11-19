@@ -2,9 +2,10 @@
 
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { CollapseTiming, FoldedReplies } from './presentation-policy.ts'
+import type { CollapseTiming, FoldedReplies, ReasoningDisclosure } from './presentation-policy.ts'
 import {
   COLLAPSE_TIMING_FIELD, DEFAULT_COLLAPSE_TIMING, DEFAULT_FOLDED_REPLIES, FOLDED_REPLIES_FIELD,
+  DEFAULT_REASONING_DISCLOSURE, REASONING_DISCLOSURE_FIELD,
   DEFAULT_TRANSCRIPT_VIEW_MODE, LEGACY_TRANSCRIPT_VIEW_MODE, LEGACY_EXPANDED_TRANSCRIPT_VIEW_MODE, TRANSCRIPT_VIEW_FIELD,
   type ChatSettings, type TranscriptViewMode,
 } from '../chat-settings.ts'
@@ -18,6 +19,9 @@ export class TranscriptViewPolicy {
   readonly collapseTiming: SnapshotStore<CollapseTiming> = createSnapshotStore<CollapseTiming>(DEFAULT_COLLAPSE_TIMING)
   /** Reactive folded-reply choice, keeping every reply until Host settings arrive. */
   readonly foldedReplies: SnapshotStore<FoldedReplies> = createSnapshotStore<FoldedReplies>(DEFAULT_FOLDED_REPLIES)
+  /** Reactive reasoning presentation, keeping every row collapsed until Host settings arrive. */
+  readonly reasoningDisclosure: SnapshotStore<ReasoningDisclosure>
+    = createSnapshotStore<ReasoningDisclosure>(DEFAULT_REASONING_DISCLOSURE)
 
   /**
    * @param host - durable Chat settings scope.
@@ -65,6 +69,16 @@ export class TranscriptViewPolicy {
     void this.host.set(FOLDED_REPLIES_FIELD, replies)
   }
 
+  /**
+   * Publish and persist how a reasoning body presents before the reader toggles it.
+   * @param disclosure - every row collapsed, or every row expanded.
+   */
+  setReasoningDisclosure(disclosure: ReasoningDisclosure): void {
+    if (this.reasoningDisclosure.getSnapshot() === disclosure) return
+    this.reasoningDisclosure.set(disclosure)
+    void this.host.set(REASONING_DISCLOSURE_FIELD, disclosure)
+  }
+
   /** Adopt the latest accepted Host section without writing it back. */
   private adopt(): void {
     const section = this.host.getSnapshot().value
@@ -77,5 +91,7 @@ export class TranscriptViewPolicy {
     if (this.collapseTiming.getSnapshot() !== timing) this.collapseTiming.set(timing)
     const replies = section.foldedReplies ?? DEFAULT_FOLDED_REPLIES
     if (this.foldedReplies.getSnapshot() !== replies) this.foldedReplies.set(replies)
+    const disclosure = section.reasoningDisclosure ?? DEFAULT_REASONING_DISCLOSURE
+    if (this.reasoningDisclosure.getSnapshot() !== disclosure) this.reasoningDisclosure.set(disclosure)
   }
 }

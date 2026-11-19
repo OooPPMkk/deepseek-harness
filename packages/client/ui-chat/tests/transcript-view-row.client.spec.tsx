@@ -13,7 +13,7 @@ import { PerformanceUsageRow } from '../src/client/settings/PerformanceUsageRow.
 import type { LinkOpening, PerformanceUsageMode, TranscriptViewMode } from '../src/chat-settings.ts'
 import { LinkOpeningRow } from '../src/client/settings/LinkOpeningRow.tsx'
 import { en, zh } from '../src/client/locale.ts'
-import type { CollapseTiming, FoldedReplies } from '../src/client/presentation-policy.ts'
+import type { CollapseTiming, FoldedReplies, ReasoningDisclosure } from '../src/client/presentation-policy.ts'
 
 afterEach(cleanup)
 
@@ -40,9 +40,11 @@ function mount(mode: TranscriptViewMode = 'standard', dictionary: typeof en | ty
   const source = createSnapshotStore<TranscriptViewMode>(mode)
   const collapseTiming = createSnapshotStore<CollapseTiming>('completion')
   const foldedReplies = createSnapshotStore<FoldedReplies>('all')
+  const reasoningDisclosure = createSnapshotStore<ReasoningDisclosure>('collapsed')
   const setTranscriptView = vi.fn((next: TranscriptViewMode) => { source.set(next) })
   const setCollapseTiming = vi.fn((next: CollapseTiming) => { collapseTiming.set(next) })
   const setFoldedReplies = vi.fn((next: FoldedReplies) => { foldedReplies.set(next) })
+  const setReasoningDisclosure = vi.fn((next: ReasoningDisclosure) => { reasoningDisclosure.set(next) })
   const props: TranscriptViewRowProps = {
     usePanelInfo: selector => selector({ activePanelId: null }),
     useSessions: emptySessions(),
@@ -55,13 +57,18 @@ function mount(mode: TranscriptViewMode = 'standard', dictionary: typeof en | ty
     useTranscriptView: bindSnapshotSelector(source),
     useCollapseTiming: bindSnapshotSelector(collapseTiming),
     useFoldedReplies: bindSnapshotSelector(foldedReplies),
+    useReasoningDisclosure: bindSnapshotSelector(reasoningDisclosure),
     setTranscriptView,
     setCollapseTiming,
     setFoldedReplies,
+    setReasoningDisclosure,
     t: makeTranslate(dictionary),
   }
   render(<TranscriptViewRow {...props} />)
-  return { setTranscriptView, setCollapseTiming, setFoldedReplies, collapseTiming, foldedReplies, props }
+  return {
+    setTranscriptView, setCollapseTiming, setFoldedReplies, setReasoningDisclosure,
+    collapseTiming, foldedReplies, reasoningDisclosure, props,
+  }
 }
 
 describe('TranscriptViewRow', () => {
@@ -81,7 +88,7 @@ describe('TranscriptViewRow', () => {
     const titleElement = screen.getByText(title)
     expect(screen.getByText(detailTitle).compareDocumentPosition(titleElement) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
     expect(screen.getByText(description)).toBeDefined()
-    expect(screen.getAllByRole('button')).toHaveLength(3)
+    expect(screen.getAllByRole('button')).toHaveLength(4)
     const trigger = screen.getByRole('button', { name: completion })
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(trigger)
@@ -117,10 +124,36 @@ describe('TranscriptViewRow', () => {
     expect(b.setTranscriptView).not.toHaveBeenCalled()
   })
 
-  it('omits the folded-reply choice while Verbose never folds a Turn', () => {
-    const b = mount('verbose')
+  it.each([
+    [en, 'Thinking Content', 'Choose whether thinking starts collapsed or expanded', 'Collapsed', 'Expanded'],
+    [zh, '思考内容', '选择思考内容默认收起还是直接展开', '默认收起', '默认展开'],
+  ] as const)('selects the reasoning disclosure below the folded-reply choice (%s)', (dictionary, title, description, collapsed, expanded) => {
+    const b = mount('standard', dictionary)
+    const repliesTitle = dictionary === en ? 'Replies After Collapse' : '收起后显示的回复'
+    expect(screen.getByText(repliesTitle).compareDocumentPosition(screen.getByText(title)) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+    expect(screen.getByText(description)).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: collapsed }))
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([collapsed, expanded])
+    fireEvent.click(screen.getByRole('menuitem', { name: expanded }))
+    expect(b.setReasoningDisclosure).toHaveBeenLastCalledWith('expanded')
+    expect(b.reasoningDisclosure.getSnapshot()).toBe('expanded')
+    fireEvent.click(screen.getByRole('button', { name: expanded }))
+    fireEvent.click(screen.getByRole('menuitem', { name: collapsed }))
+    expect(b.setReasoningDisclosure).toHaveBeenLastCalledWith('collapsed')
+    expect(b.setFoldedReplies).not.toHaveBeenCalled()
+    expect(b.setCollapseTiming).not.toHaveBeenCalled()
+    expect(b.setTranscriptView).not.toHaveBeenCalled()
+  })
+
+  it('shows the reasoning disclosure in Verbose, which never folds a Turn', () => {
+    mount('verbose')
+    expect(screen.getByText('Thinking Content')).toBeDefined()
     expect(screen.queryByText('Replies After Collapse')).toBeNull()
-    expect(screen.getAllByRole('button')).toHaveLength(2)
+  })
+
+  it('omits the folded-reply choice while Verbose never folds a Turn', () => {    const b = mount('verbose')
+    expect(screen.queryByText('Replies After Collapse')).toBeNull()
+    expect(screen.getAllByRole('button')).toHaveLength(3)
     fireEvent.click(screen.getByRole('button', { name: 'Verbose' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Standard' }))
     expect(b.setTranscriptView).toHaveBeenLastCalledWith('standard')

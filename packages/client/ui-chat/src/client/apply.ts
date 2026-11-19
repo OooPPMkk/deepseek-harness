@@ -188,7 +188,9 @@ export function apply(ctx: Context): void {
     }, LinkOpeningRow))
   })
   const transcriptView = new TranscriptViewPolicy(chatSettings, 'dshDesktop' in globalThis ? 'standard' : DEFAULT_TRANSCRIPT_VIEW_MODE)
-  const presentation = derivePresentationPolicy(transcriptView.mode, transcriptView.collapseTiming, transcriptView.foldedReplies)
+  const presentation = derivePresentationPolicy(
+    transcriptView.mode, transcriptView.collapseTiming, transcriptView.foldedReplies, transcriptView.reasoningDisclosure,
+  )
   const performancePolicy = new PerformanceUsagePolicy(chatSettings)
   ctx.effect(() => () => { transcriptView.dispose(); performancePolicy.dispose() })
   const performanceUsage = performancePolicy.mode
@@ -219,10 +221,12 @@ export function apply(ctx: Context): void {
         transcriptView: transcriptView.mode,
         collapseTiming: transcriptView.collapseTiming,
         foldedReplies: transcriptView.foldedReplies,
+        reasoningDisclosure: transcriptView.reasoningDisclosure,
       },
       setTranscriptView: (mode) => { transcriptView.setMode(mode) },
       setCollapseTiming: (timing) => { transcriptView.setCollapseTiming(timing) },
       setFoldedReplies: (replies) => { transcriptView.setFoldedReplies(replies) },
+      setReasoningDisclosure: (disclosure) => { transcriptView.setReasoningDisclosure(disclosure) },
     }),
   }, TranscriptViewRow))
 
