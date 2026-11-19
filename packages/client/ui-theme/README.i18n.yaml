@@ -33,11 +33,14 @@
   en: 875bd262240187c1
   zh: 32ffb98f502ed042
 /deepseek-ai-dsh-client-ui-theme/understand-the-implementation/stylesheets:
-  en: 148903d8cd6580f5
-  zh: 7ff2ff90954798b8
+  en: fc423f32959dbbf4
+  zh: 76d670d82ec87dee
 /deepseek-ai-dsh-client-ui-theme/understand-the-implementation/scrollbar-rebinding:
   en: 3448f0857e398018
   zh: 0b5078286134b8e9
+/deepseek-ai-dsh-client-ui-theme/understand-the-implementation/local-palette-override:
+  en: 956719d06d083294
+  zh: 5d719f01c07b5fe5
 /deepseek-ai-dsh-client-ui-theme/understand-the-implementation/preference-persistence:
   en: b1f0b0bce5e53bae
   zh: 26ded298f85834ae

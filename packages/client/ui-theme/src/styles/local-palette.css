@@ -1,0 +1,163 @@
+/* Local palette override. `design-platform.css` mirrors the upstream Figma
+ * token export, so this file re-binds its semantic layer instead of editing
+ * it: deleting this import and the `local-palette.css` import restores stock
+ * colors exactly.
+ *
+ * Hues are split by theme — azure on light, violet on dark. Large surfaces
+ * carry only 4–8% chroma so the cast reads as memory, not color; saturated
+ * ink stays on small area (links, focus ring, selection, nav accents).
+ * Neutral anchors stay neutral on purpose: primary buttons, toast, tooltip
+ * and masks keep their grays so one hue never fills the whole screen.
+ *
+ * Must load after `design-platform.css`; `html body` also outranks its `body`
+ * selectors so a later sheet cannot silently win instead. */
+
+html body {
+  --dsw-alias-bg-base: #fbfcfe;
+  --dsw-alias-bg-document-preview: #eef3fb;
+  --dsw-alias-bg-layer-1: #ffffff;
+  --dsw-alias-bg-layer-2: #ffffff;
+  --dsw-alias-bg-layer-3: #ffffff;
+  --dsw-alias-bg-module-platform: #f2f6fd;
+  --dsw-alias-bg-multi-select: #f2f6fd;
+  --dsw-alias-bg-overlay: #e7effc;
+  --dsw-alias-bg-skeleton: rgb(37 99 235 / 5%);
+  --dsw-alias-border-l1: rgb(22 58 120 / 5%);
+  --dsw-alias-border-l2: rgb(22 58 120 / 10%);
+  --dsw-alias-border-l2-darkmode-thin: rgb(22 58 120 / 10%);
+  --dsw-alias-border-l3: rgb(22 58 120 / 13%);
+  --dsw-alias-border-l4: rgb(22 58 120 / 17%);
+  --dsw-alias-border-selected: #9fb6e8;
+  --dsw-alias-brand-primary-new-colorprimary-new-color: #2563eb;
+  --dsw-alias-button-floating-hover: #f0f5fd;
+  --dsw-alias-button-ghost-active-border: #8fa6c9;
+  --dsw-alias-button-ghost-active-fill: #edf2fb;
+  --dsw-alias-button-ghost-active-hover: #e5edfa;
+  --dsw-alias-button-primary-dimmed: #edf2fb;
+  --dsw-alias-button-primary-hover: #3a4a63;
+  --dsw-alias-card-fill: #f8fafe;
+  --dsw-alias-card-fill-hover: #f1f5fc;
+  --dsw-alias-hovercard-bg: #1e2a3e;
+  --dsw-alias-interactive-bg-active: rgb(37 99 235 / 12%);
+  --dsw-alias-interactive-bg-hover-accent: rgb(37 99 235 / 14%);
+  --dsw-alias-interactive-bg-hover-solid: #f2f6fd;
+  --dsw-alias-interactive-bg-hover: rgb(37 99 235 / 7%);
+  --dsw-alias-link: #1d5fd6;
+  --dsw-alias-markdown-citation: #eaf1fc;
+  --dsw-alias-markdown-code-block-banner: #f2f6fd;
+  --dsw-alias-markdown-code-block: #f5f8fe;
+  --dsw-alias-markdown-code-segment-selected: #ffffff;
+  --dsw-alias-markdown-code-segment-unselected: #f2f6fd;
+  --dsw-alias-markdown-inline-code: #f2f6fd;
+  --dsw-alias-markdown-placeholder: #f2f6fd;
+  --dsw-alias-markdown-tag: #eaf2fe;
+  --dsw-alias-scrollbar-bg-l1: #dce5f2;
+  --dsw-alias-scrollbar-bg-l2: #dce5f2;
+  --dsw-alias-scrollbar-hover-l1: #c9d6ea;
+  --dsw-alias-scrollbar-hover-l2: #c9d6ea;
+  --dsw-alias-state-business-primary: #1d5fd6;
+  --dsw-alias-state-business-tertiary: #deeafc;
+  --dsw-alias-trajectory-accent: #2563eb;
+  --dsw-linear-gradient-think: linear-gradient(180deg, #fbfcfe 20.19%, rgb(251 252 254 / 0%) 100%);
+  --dsw-linear-think-select: linear-gradient(180deg, #f1f6fd 20.19%, rgb(241 246 253 / 0%) 100%);
+  --dsw-menu-surface-fill: rgb(250 252 255 / 70%);
+  --dsw-alias-menu-group-header-fill: rgb(246 250 255 / 94%);
+  --dsw-specific-guide-hero: #dee7f5;
+  --dsw-specific-input-major: #ffffff;
+  --dsw-specific-login-input: #f6f9fe;
+  --dsw-specific-selector: #f2f6fd;
+  --dsw-specific-sidebar-fill: #f2f6fd;
+  --dsw-specific-sidebar-nav-item-active-accent: #d7e5fb;
+  --dsw-specific-sidebar-nav-item-active: #e7effc;
+  --dsw-specific-tip: #f2f6fd;
+}
+
+html body[data-ds-dark-theme] {
+  --dsw-alias-bg-base: #14111b;
+  --dsw-alias-bg-document-preview: #14111b;
+  --dsw-alias-bg-layer-1: #211c2b;
+  --dsw-alias-bg-layer-2: #282231;
+  --dsw-alias-bg-layer-3: #302939;
+  --dsw-alias-bg-module-platform: #302939;
+  --dsw-alias-bg-multi-select: #251f33;
+  --dsw-alias-bg-overlay: #4a4160;
+  --dsw-alias-bg-skeleton: rgb(190 170 255 / 9%);
+  --dsw-alias-border-l1: rgb(190 170 255 / 7%);
+  --dsw-alias-border-l2: rgb(190 170 255 / 13%);
+  --dsw-alias-border-l2-darkmode-thin: rgb(190 170 255 / 7%);
+  --dsw-alias-border-l3: rgb(190 170 255 / 17%);
+  --dsw-alias-border-l4: rgb(190 170 255 / 22%);
+  --dsw-alias-border-selected: #7e6ea8;
+  --dsw-alias-brand-primary-new-colorprimary-new-color: #a78bfa;
+  --dsw-alias-button-elevated-fill: #332c46;
+  --dsw-alias-button-floating-fill: #2a2438;
+  --dsw-alias-button-floating-hover: #332c42;
+  --dsw-alias-button-ghost-active-border: #6f6485;
+  --dsw-alias-button-ghost-active-fill: #332c46;
+  --dsw-alias-button-ghost-active-hover: #453c5c;
+  --dsw-alias-button-info-fill: #b9a2ff;
+  --dsw-alias-button-info-hover: #c9b8ff;
+  --dsw-alias-button-primary-dimmed: #332c46;
+  --dsw-alias-card-fill: #221d2b;
+  --dsw-alias-card-fill-hover: #2a2434;
+  --dsw-alias-hovercard-bg: #2b2438;
+  --dsw-alias-interactive-bg-active: rgb(167 139 250 / 18%);
+  --dsw-alias-interactive-bg-hover-accent: rgb(167 139 250 / 28%);
+  --dsw-alias-interactive-bg-hover-solid: #241e31;
+  --dsw-alias-interactive-bg-hover: rgb(167 139 250 / 12%);
+  --dsw-alias-link: #b9a2ff;
+  --dsw-alias-markdown-citation: #211c2b;
+  --dsw-alias-markdown-code-block-banner: #1e1929;
+  --dsw-alias-markdown-code-block: #171320;
+  --dsw-alias-markdown-code-segment-selected: #241e31;
+  --dsw-alias-markdown-code-segment-unselected: #171320;
+  --dsw-alias-markdown-inline-code: #221d2c;
+  --dsw-alias-markdown-placeholder: #221d2c;
+  --dsw-alias-markdown-tag: #221d2c;
+  --dsw-alias-scrollbar-bg-l1: #4a4258;
+  --dsw-alias-scrollbar-bg-l2: #544a66;
+  --dsw-alias-scrollbar-hover-l1: #5c5273;
+  --dsw-alias-scrollbar-hover-l2: #665a80;
+  --dsw-alias-state-business-primary: #a78bfa;
+  --dsw-alias-state-business-tertiary: #2a2340;
+  --dsw-alias-switch-thumb: #8e7fb0;
+  --dsw-alias-toast-action: #c9b8ff;
+  --dsw-alias-toast-bg: #2e2740;
+  --dsw-alias-tooltip-bg: #2e2740;
+  --dsw-alias-trajectory-accent: #8b6cf7;
+  --dsw-linear-gradient-think: linear-gradient(180deg, #14111b 20.19%, rgb(20 17 27 / 0%) 100%);
+  --dsw-linear-think-select: linear-gradient(180deg, #211c2b 20.19%, rgb(33 28 43 / 0%) 100%);
+  --dsw-menu-surface-fill: rgb(40 34 49 / 64%);
+  --dsw-alias-menu-group-header-fill: rgb(40 34 49 / 94%);
+  --dsw-specific-bubble: #251f35;
+  --dsw-specific-bubble-highlight: #322949;
+  --dsw-specific-guide-hero: #332c44;
+  --dsw-specific-input-major: #201b29;
+  --dsw-specific-login-input: #1c1726;
+  --dsw-specific-selector: #2c2540;
+  --dsw-specific-sidebar-fill: #1a1622;
+  --dsw-specific-sidebar-nav-item-active-accent: #221c36;
+  --dsw-specific-sidebar-nav-item-active: #2a2340;
+  --dsw-specific-sidebar-right-flash: #b9a2ff;
+  --dsw-specific-tip: #2c2540;
+}
+
+/* macOS vibrancy: the washes sit on the tint, so they follow the same hues.
+   `html[data-platform='darwin'] body` repeats design-platform's specificity;
+   this sheet loads last, which decides the conflict. */
+html[data-platform='darwin'] body {
+  --dsw-specific-menu: rgb(246 250 255 / 94%);
+  --dsw-specific-sidebar-tint: color-mix(in srgb, color-mix(in srgb, var(--dsw-specific-sidebar-fill) 97%, rgb(122 155 240)) 40%, transparent);
+  --dsw-specific-sidebar-wash-bottom: rgb(110 145 235 / 9%);
+  --dsw-specific-sidebar-wash-bottom-clear: rgb(110 145 235 / 0%);
+  --dsw-specific-sidebar-wash-top: rgb(96 133 235 / 12%);
+  --dsw-specific-sidebar-wash-top-clear: rgb(96 133 235 / 0%);
+}
+
+html[data-platform='darwin'] body[data-ds-dark-theme] {
+  --dsw-specific-menu: rgb(40 34 49 / 94%);
+  --dsw-specific-sidebar-wash-bottom: rgb(160 130 255 / 8%);
+  --dsw-specific-sidebar-wash-bottom-clear: rgb(160 130 255 / 0%);
+  --dsw-specific-sidebar-wash-top: rgb(140 110 255 / 10%);
+  --dsw-specific-sidebar-wash-top-clear: rgb(140 110 255 / 0%);
+}

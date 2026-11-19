@@ -8,6 +8,8 @@ import '../styles/onboarding.css'
 import '../styles/scrollbar.css'
 import '../styles/gradient-shadow-text.css'
 import '../styles/shiki.css'
+// Local palette rebinds the semantic layer, so it must load after design-platform.css.
+import '../styles/local-palette.css'
 
 const HAIRLINE_WIDTH = '--dsh-hairline-width'
 
