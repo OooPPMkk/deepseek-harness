@@ -174,6 +174,36 @@ it.each([
   }
 })
 
+it('reports an accepted status with no body as an empty body, not a parse failure', async () => {
+  const output = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  const fetcher = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 202 }))
+  try {
+    await expect(requestAccount('https://platform.deepseek.com', '/api/v0/users/get_user_summary',
+      'private-token', new AbortController().signal, {})).rejects.toThrow('account: protocol')
+    expect(output).toHaveBeenCalledWith('[deepseek-account] response rejected', expect.objectContaining({
+      path: '/api/v0/users/get_user_summary', status: 202, stage: 'empty-body', errorCode: 'protocol',
+    }))
+  } finally {
+    fetcher.mockRestore()
+    output.mockRestore()
+  }
+})
+
+it('stamps failure diagnostics with the UTC report time', async () => {
+  const output = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  const fetcher = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('not-json'))
+  try {
+    await expect(requestAccount('https://platform.deepseek.com', '/auth-api/v0/users/current',
+      'private-token', new AbortController().signal, {})).rejects.toThrow('account: protocol')
+    const detail = output.mock.calls[0]?.[1] as { at?: unknown }
+    expect(typeof detail.at).toBe('string')
+    expect(new Date(String(detail.at)).toISOString()).toBe(detail.at)
+  } finally {
+    fetcher.mockRestore()
+    output.mockRestore()
+  }
+})
+
 
 it('reports skipped notification fields without logging notification data', async () => {
   const output = vi.spyOn(console, 'error').mockImplementation(() => undefined)
