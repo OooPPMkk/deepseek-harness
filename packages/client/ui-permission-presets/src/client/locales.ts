@@ -41,6 +41,7 @@ export const en = {
 /** Simplified Chinese dictionary for the current-session popup gate. */
 export const accessZh = {
   'mode': '访问模式，当前：{name}',
+  'modePinned': '访问模式，当前：{name}（由当前对话模式固定）',
   'close': '关闭',
   'preset.readOnly': '仅可查看',
   'preset.workspaceWrite': '工作区内修改',
@@ -65,6 +66,7 @@ export type PermissionAccessKey = keyof typeof accessZh
 /** English dictionary for the current-session popup gate. */
 export const accessEn = {
   'mode': 'Access mode, current: {name}',
+  'modePinned': 'Access mode, current: {name} (pinned by the current conversation mode)',
   'close': 'Close',
   'preset.readOnly': 'Read Only',
   'preset.workspaceWrite': 'Workspace Write',
@@ -182,6 +184,7 @@ export const pt = {
 /** Japanese copy, checked against the English keys. */
 export const accessJa = {
   'mode': 'アクセスモード、現在: {name}',
+  'modePinned': 'アクセスモード、現在: {name}（現在の会話モードで固定）',
   'close': '閉じる',
   'preset.readOnly': '読み取り専用',
   'preset.workspaceWrite': 'ワークスペース書き込み',
@@ -203,6 +206,7 @@ export const accessJa = {
 /** Spanish dictionary, checked against the English keys. */
 export const accessEs = {
   'mode': 'Modo de acceso, actual: {name}',
+  'modePinned': 'Modo de acceso, actual: {name} (fijado por el modo de conversación actual)',
   'close': 'Cerrar',
   'preset.readOnly': 'Sólo lectura',
   'preset.workspaceWrite': 'Escritura en el espacio de trabajo',
@@ -224,6 +228,7 @@ export const accessEs = {
 /** French dictionary, checked against the English keys. */
 export const accessFr = {
   'mode': "Mode d'accès, actuel : {name}",
+  'modePinned': "Mode d'accès, actuel : {name} (fixé par le mode de conversation actuel)",
   'close': 'Fermer',
   'preset.readOnly': 'Lecture seule',
   'preset.workspaceWrite': "Écriture dans l'espace de travail",
@@ -245,6 +250,7 @@ export const accessFr = {
 /** German dictionary, checked against the English keys. */
 export const accessDe = {
   'mode': 'Zugriffsmodus, aktuell: {name}',
+  'modePinned': 'Zugriffsmodus, aktuell: {name} (durch den aktuellen Konversationsmodus festgelegt)',
   'close': 'Schließen',
   'preset.readOnly': 'Nur lesen',
   'preset.workspaceWrite': 'Arbeitsbereich schreiben',
@@ -266,6 +272,7 @@ export const accessDe = {
 /** Russian dictionary, checked against the English keys. */
 export const accessRu = {
   'mode': 'Режим доступа, текущий: {name}',
+  'modePinned': 'Режим доступа, текущий: {name} (зафиксирован текущим режимом диалога)',
   'close': 'Закрыть',
   'preset.readOnly': 'Только чтение',
   'preset.workspaceWrite': 'Запись в рабочей области',
@@ -287,6 +294,7 @@ export const accessRu = {
 /** Portuguese dictionary, checked against the English keys. */
 export const accessPt = {
   'mode': 'Modo de acesso, atual: {name}',
+  'modePinned': 'Modo de acesso, atual: {name} (fixado pelo modo de conversa atual)',
   'close': 'Fechar',
   'preset.readOnly': 'Somente leitura',
   'preset.workspaceWrite': 'Gravação no espaço de trabalho',

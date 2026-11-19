@@ -45,6 +45,9 @@
       "path": "../../interaction/permission-presets"
     },
     {
+      "path": "../../interaction/session-mode"
+    },
+    {
       "path": "../../api/remotes/tsconfig.client.json"
     },
     {

@@ -13,6 +13,9 @@ import type { PresetOption } from '@deepseek-ai/dsh-permission-presets/client'
 // Type-only: pulls the conversation-owned permission slot declaration and
 // the standard session projection hook into this package's Client face.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+// Type-only: pulls the `session-mode` projection key, whose `pinned` value
+// says whether the mode in force owns this access level.
+import type {} from '@deepseek-ai/dsh-session-mode/client'
 import type { PermissionCatalogState } from './catalog.ts'
 import { PERMISSION_ACCESS_NS } from './locales.ts'
 import {
@@ -78,6 +81,11 @@ export function PermissionSelect({
   locked, select, usePermissionCatalog, useProjection, t,
 }: PermissionSelectProps) {
   const selection = useProjection('permissions')
+  // A pinning conversation mode owns this access level until the user leaves
+  // that mode; offering an edit the next `agent/pre-step` would overwrite is a
+  // promise the surface cannot keep.
+  const pinned = useProjection('session-mode')?.pinned ?? null
+  const pinLocked = pinned !== null
   const catalog = usePermissionCatalog(state => state.value)
   const [pick, setPick] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -85,12 +93,12 @@ export function PermissionSelect({
   const [acknowledged, setAcknowledged] = useState(false)
 
   useEffect(() => {
-    if (!locked && selection !== undefined && catalog !== null
+    if (!locked && !pinLocked && selection !== undefined && catalog !== null
       && (confirmation === null || catalog.options.some(option => option.value === confirmation))) return
     setOpen(false)
     setAcknowledged(false)
     setConfirmation(null)
-  }, [catalog, confirmation, locked, selection])
+  }, [catalog, confirmation, locked, pinLocked, selection])
 
   if (selection === undefined || catalog === null) return null
 
@@ -161,6 +169,29 @@ export function PermissionSelect({
     ? t('auto.confirm.enable')
     : t('confirm.enable')
 
+  const trigger = (
+    <button
+      type="button"
+      className={css.trigger}
+      aria-label={pinLocked
+        ? t('modePinned', { name: currentLabel })
+        : t('mode', { name: currentLabel })}
+      title={pinLocked
+        ? t('modePinned', { name: currentLabel })
+        : current === undefined ? undefined : optionDescription(current, t)}
+      disabled={locked || busy || pinLocked}
+      onClick={() => { setOpen(!open) }}
+    >
+      {permissionGlyph(currentValue) !== undefined && (
+        <span className={css.triggerIcon} aria-hidden>{permissionGlyph(currentValue)}</span>
+      )}
+      <span className={css.triggerLabel}>{currentLabel}</span>
+      <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden>
+        <IconChevronDownOutlineRegular />
+      </span>
+    </button>
+  )
+
   return (
     <>
       <Menu
@@ -171,24 +202,11 @@ export function PermissionSelect({
         onClose={() => { setOpen(false) }}
         side="top"
         portal
-        anchor={
-          <button
-            type="button"
-            className={css.trigger}
-            aria-label={t('mode', { name: currentLabel })}
-            title={current === undefined ? undefined : optionDescription(current, t)}
-            disabled={locked || busy}
-            onClick={() => { setOpen(!open) }}
-          >
-            {permissionGlyph(currentValue) !== undefined && (
-              <span className={css.triggerIcon} aria-hidden>{permissionGlyph(currentValue)}</span>
-            )}
-            <span className={css.triggerLabel}>{currentLabel}</span>
-            <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden>
-              <IconChevronDownOutlineRegular />
-            </span>
-          </button>
-        }
+        anchor={pinLocked
+          // A disabled button receives no pointer events, so the wrapper owns
+          // the tooltip that explains why this control cannot change.
+          ? <span className={css.pinned} title={t('modePinned', { name: currentLabel })}>{trigger}</span>
+          : trigger}
       />
       {confirmation !== null && (
         <RiskConfirmation

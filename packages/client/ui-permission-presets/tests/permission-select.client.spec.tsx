@@ -34,16 +34,21 @@ function setup(options: {
   selection?: PermissionSelection | undefined
   catalog?: PermissionCatalog | null
   locked?: boolean
+  sessionMode?: { mode: string; pending: boolean; pinned: string | null } | undefined
   select?: (preset: string) => Promise<boolean>
 } = {}) {
   const selection = createSnapshotStore<{ value: PermissionSelection | undefined }>({
     value: 'selection' in options ? options.selection : { currentValue: 'workspace-write' },
   })
+  const sessionMode = createSnapshotStore<{ value: { mode: string; pending: boolean; pinned: string | null } | undefined }>({
+    value: options.sessionMode,
+  })
   const catalog = createSnapshotStore<PermissionCatalogState>({
     value: options.catalog === undefined ? CATALOG : options.catalog,
   })
-  const useProjection = (_key: string, selector?: (value: unknown) => unknown) =>
-    bindSnapshotSelector(selection)(state => (selector ?? (value => value))(state.value))
+  const useProjection = (key: string, selector?: (value: unknown) => unknown) => key === 'session-mode'
+    ? bindSnapshotSelector(sessionMode)(state => (selector ?? (value => value))(state.value))
+    : bindSnapshotSelector(selection)(state => (selector ?? (value => value))(state.value))
   const select = vi.fn(options.select ?? (() => Promise.resolve(true)))
   const props = {
     locked: options.locked ?? false,
@@ -117,6 +122,27 @@ describe('PermissionSelect', () => {
     expect(screen.getAllByRole('menuitem')).toHaveLength(4)
     fireEvent.pointerDown(document.body)
     expect(screen.queryByRole('menuitem')).toBeNull()
+  })
+
+  it('locks the trigger while a conversation mode pins the access level', () => {
+    setup({
+      selection: { currentValue: 'read-only' },
+      sessionMode: { mode: 'ask', pending: false, pinned: 'read-only' },
+    })
+    expect(trigger().disabled).toBe(true)
+    expect(trigger().getAttribute('aria-label')).toBe('访问模式，当前：仅可查看（由当前对话模式固定）')
+    fireEvent.click(trigger())
+    expect(screen.queryByRole('menuitem')).toBeNull()
+  })
+
+  it('keeps the trigger editable when the selected mode pins nothing', () => {
+    setup({
+      selection: { currentValue: 'workspace-write' },
+      sessionMode: { mode: 'debug', pending: false, pinned: null },
+    })
+    expect(trigger().disabled).toBe(false)
+    fireEvent.click(trigger())
+    expect(screen.getAllByRole('menuitem')).toHaveLength(4)
   })
 
   it('requires and resets explicit acknowledgement for Full access', async () => {

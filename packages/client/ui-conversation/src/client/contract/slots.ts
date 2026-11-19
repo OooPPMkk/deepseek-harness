@@ -349,6 +349,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.input.plan': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
     /**
+     * Collaboration-mode control inside the composer tool row; fixed overlays must portal to
+     * the document body because the docked composer contains them.
+     */
+    'conversation.input.mode': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
+    /**
      * Current-session permission control inside the composer tool row; fixed overlays must portal
      * to the document body because the docked composer contains them.
      */
@@ -641,7 +646,7 @@ export type ComposerBarProps =
   & PropsRenderSlots<
     | 'conversation.input.attachments' | 'conversation.input.overlay'
     | 'conversation.input.permission'
-    | 'conversation.input.left' | 'conversation.input.plan'
+    | 'conversation.input.left' | 'conversation.input.plan' | 'conversation.input.mode'
     | 'conversation.input.right' | 'conversation.input.model' | 'conversation.input.activity'
     | 'conversation.composer.dock'
   >

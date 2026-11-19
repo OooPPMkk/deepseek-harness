@@ -33,6 +33,13 @@
   cursor: default;
 }
 
+/* Hover target for a pinning conversation mode: the disabled trigger itself
+   receives no pointer events, so this wrapper carries the explanation. */
+.pinned {
+  display: inline-flex;
+  min-width: 0;
+}
+
 .triggerIcon {
   display: inline-flex;
   flex: 0 0 auto;
