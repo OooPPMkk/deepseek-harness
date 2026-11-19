@@ -65,9 +65,9 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 
 `base.css` 持有共享圆角尺度、字体 token 与设置卡片材质别名。`--dsh-font-family-text-default` 与 `--dsh-font-family-code-default` 在 `:root` 上保存内置字体栈；在 `body` 上，`--dsw-font-family` 与 `--ds-font-family-code` 把 `--dsh-font-family-text` 与 `--dsh-font-family-code` 排在这些字体栈之前，未设置的列表解析为内置字体栈（重复一次，字体匹配会忽略重复项）。材质别名在 `body` 上随当前色板解析。组件圆角选择遵循 [Web 样式参考](../../../docs/web-styling.zh.md#corner-radii-and-settings-cards)。
 
-`src/styles/` 下有八张样式表，由 ui-theme 的动态客户端 entry 依次导入：`base.css`、`corner-shape.css`、`design-platform.css`、`focus.css`、`onboarding.css`、`scrollbar.css`、`gradient-shadow-text.css` 与 `shiki.css`。客户端 bundle 将其编译并注入为插件持有的全局样式，因此卸载与 HMR（热模块替换）会随 ui-theme 一同移除。`scrollbar.css` 消费 `--dsw-alias-scrollbar-*` token，必须排在声明这些 token 的 `design-platform.css` 之后。状态标记使用各自的语义状态 token；`--dsw-alias-state-done-primary` 标记已完成的工作（例如已合并的变更请求），浅色主题为 violet-600，深色主题为 violet-400。`--dsw-alias-bg-document-selection` 在两种主题中均使用 40% 不透明度的 blue-500，供保留文档原色的选区使用。`design-platform.css` 还负责代码差异底色的别名及其静态透明度色阶，以及文件对比所用的 `--dsw-alias-file-diff-*` 代码区、行号区和标记配色；`shiki.css` 负责语法颜色。
+`src/styles/` 下有九张样式表，由 ui-theme 的动态客户端 entry 依次导入：`base.css`、`corner-shape.css`、`design-platform.css`、`focus.css`、`onboarding.css`、`scrollbar.css`、`gradient-shadow-text.css`、`shiki.css` 与 `local-palette.css`。客户端 bundle 将其编译并注入为插件持有的全局样式，因此卸载与 HMR（热模块替换）会随 ui-theme 一同移除。`scrollbar.css` 消费 `--dsw-alias-scrollbar-*` token，必须排在声明这些 token 的 `design-platform.css` 之后。`local-palette.css` 最后加载，重绑语义层——见[本地配色覆盖](#local-palette-override)。状态标记使用各自的语义状态 token；`--dsw-alias-state-done-primary` 标记已完成的工作（例如已合并的变更请求），浅色主题为 violet-600，深色主题为 violet-400。`--dsw-alias-bg-document-selection` 在两种主题中均使用 40% 不透明度的 blue-500，供保留文档原色的选区使用。`design-platform.css` 还负责代码差异底色的别名及其静态透明度色阶，以及文件对比所用的 `--dsw-alias-file-diff-*` 代码区、行号区和标记配色；`shiki.css` 负责语法颜色。
 
-[`focus.css`](src/styles/focus.css) 提供 `:focus-visible` 兜底：通过 `var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary))` 声明焦点环颜色，并通过 `--dsw-focus-ring-width` 声明标准宽度，但不声明轮廓样式——因此禁用轮廓的控件仍然不绘制，而没有自有焦点环的控件保持标准几何，而不是落到 Chromium 的 `auto 1px`。主题将该蓝色解析为浅色模式的 `#4176E6` 和深色模式的 `#7AAAFF`。组件轮廓与焦点环阴影使用同一颜色表达式，包括后代和伪元素上的环。`--dsw-focus-ring-width`（2px）是标准宽度；密集表格与工具栏可以保留 1px，offset 仍由组件决定。
+[`focus.css`](src/styles/focus.css) 提供 `:focus-visible` 兜底：通过 `var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary))` 声明焦点环颜色，并通过 `--dsw-focus-ring-width` 声明标准宽度，但不声明轮廓样式——因此禁用轮廓的控件仍然不绘制，而没有自有焦点环的控件保持标准几何，而不是落到 Chromium 的 `auto 1px`。主题将该颜色解析为浅色模式的 `#1D5FD6` 和深色模式的 `#A78BFA`。组件轮廓与焦点环阴影使用同一颜色表达式，包括后代和伪元素上的环。`--dsw-focus-ring-width`（2px）是标准宽度；密集表格与工具栏可以保留 1px，offset 仍由组件决定。
 
 指针模态下，`html[data-input-modality='pointer'] body :focus-visible:not(:read-write)` 将焦点环颜色设为透明。后代与伪元素继承该值；规则不清除 `box-shadow`，因此 elevation 阴影与选中态边框独立于焦点环可见性。匹配 `:read-write` 的可编辑文本控件在点击时保留自身焦点反馈。[输入模态](../ui-primitives/README.zh.md#input-modality)决定何时恢复键盘焦点样式；它不移动 DOM 焦点。
 
@@ -77,7 +77,7 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 
 `base.css` 仅抑制[基础控件焦点工具](../ui-primitives/README.zh.md)通过 `data-dsh-automatic-focus` 标记的聚焦元素外轮廓线；正常键盘焦点样式、边框、阴影及错误状态保持不变。
 
-系统提示使用 `--dsw-alias-toast-bg`、`--dsw-alias-toast-label` 和 `--dsw-alias-toast-action`，在各调用方之间统一背景、文字与操作颜色。悬停卡片使用 `--dsw-alias-hovercard-bg`、三档 `--dsw-alias-hovercard-label-*`，以及 `--dsw-alias-hovercard-state-done` 和 `--dsw-alias-hovercard-state-error` 状态颜色；该表面在两套配色中均保持深色。`--dsw-alias-label-on-color` 是饱和填充（如发送按钮）上的白色文字。计划、日程和交付物卡片共用 `--dsw-alias-card-fill`、`--dsw-alias-card-fill-hover` 和 `--dsw-alias-card-tile-fill`；`--dsw-alias-json-tree-*` 为 JSON 树语法着色，`--dsw-alias-chart-*` 为上下文占用各类别着色，`--dsw-alias-border-selected` 用于选中的选项卡片，`--dsw-alias-trajectory-accent` 用于轨迹轮次高亮。组件专属值使用 `--dsw-specific-*`：引导页主视觉文字、文件上传进度轨道、右侧边栏显现闪烁颜色，以及 macOS 上侧边栏的玻璃控件、底色层和色调。文档预览配对使用 `--dsw-alias-bg-document-preview` 与 `--dsw-alias-label-document-preview`，使底色与状态文字遵循相同主题。Tooltip 键帽使用 `--dsw-alias-tooltip-key-bg`，由各主题的 tooltip 背景派生稍浅的填充。开关滑块读取 `--dsw-alias-switch-thumb`：浅色模式为纯白，深色模式为 neutral-bluish 400，使关闭态滑块比轨道更亮，同时避免纯白在暗色下过亮。
+系统提示使用 `--dsw-alias-toast-bg`、`--dsw-alias-toast-label` 和 `--dsw-alias-toast-action`，在各调用方之间统一背景、文字与操作颜色。悬停卡片使用 `--dsw-alias-hovercard-bg`、三档 `--dsw-alias-hovercard-label-*`，以及 `--dsw-alias-hovercard-state-done` 和 `--dsw-alias-hovercard-state-error` 状态颜色；该表面在两套配色中均保持深色。`--dsw-alias-label-on-color` 是饱和填充（如发送按钮）上的白色文字。计划、日程和交付物卡片共用 `--dsw-alias-card-fill`、`--dsw-alias-card-fill-hover` 和 `--dsw-alias-card-tile-fill`；`--dsw-alias-json-tree-*` 为 JSON 树语法着色，`--dsw-alias-chart-*` 为上下文占用各类别着色，`--dsw-alias-border-selected` 用于选中的选项卡片，`--dsw-alias-trajectory-accent` 用于轨迹轮次高亮。组件专属值使用 `--dsw-specific-*`：引导页主视觉文字、文件上传进度轨道、右侧边栏显现闪烁颜色，以及 macOS 上侧边栏的玻璃控件、底色层和色调。文档预览配对使用 `--dsw-alias-bg-document-preview` 与 `--dsw-alias-label-document-preview`，使底色与状态文字遵循相同主题。Tooltip 键帽使用 `--dsw-alias-tooltip-key-bg`，由各主题的 tooltip 背景派生稍浅的填充。开关滑块读取 `--dsw-alias-switch-thumb`：浅色模式为纯白，深色模式为低饱和紫色，使关闭态滑块比轨道更亮，同时避免纯白在暗色下过亮。
 
 `--dsw-alias-label-shimmer` 为共享文字扫光提供叠加色：浅色配色使用 30% alpha 的黑色，深色配色使用 45% alpha 的白色。`--dsw-alias-label-deep-diving` 和 `--dsw-alias-label-deep-diving-shimmer` 提供蓝色活动文本和扫光颜色；深色主题使用更亮、饱和度更低的文字，并以更亮的蓝色扫光。
 
@@ -96,6 +96,15 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 ### 滚动条重新绑定
 
 `scrollbar.css` 在 `body` 上把 `--dsh-scrollbar-thumb` 与 `--dsh-scrollbar-thumb-hover` 绑定到 l1 基础表面 token；高层级表面（菜单、浮层、对话框）在自己的容器上把它们重新绑定为 l2 token；这组变量的另一个合法目标是 `transparent`（ui-sidebar 在指针不在栏内时就这样重新绑定自己的列）。WebKit 系浏览器默认使用 5px 的 `--dsh-scrollbar-width`，并读取 `--dsh-scrollbar-thumb-border` 与 `--dsh-scrollbar-track-margin`；滚动表面可重新绑定它们，在较窄的可见滑块外保留较宽的拖动区域，或让轨道避开圆角两端。两条渲染路径在构造上互斥：Firefox 走 `@supports not selector(::-webkit-scrollbar)` 内的标准细滚动条，WebKit 系引擎走伪元素，因此几何与 hover 定制只经由伪元素路径生效。
+
+<a id="local-palette-override"></a>
+### 本地配色覆盖
+
+`local-palette.css` 是在上游 token 导出之上的本地追加层。它在 `html body` 与 `html body[data-ds-dark-theme]` 上重新声明 `--dsw-alias-*` 和 `--dsw-specific-*`——比 `design-platform.css` 里的 `body` 选择器高两级特异性——并且最后加载，因此后加入的样式表不会意外赢得冲突。配色按主题分开：浅色为蓝系表面，深色为紫系表面；`boot-theme.ts` 携带对应的画布色（`#fbfcfe`、`#14111b`）供样式表加载前的首屏绘制，`gradient-shadow-text.css` 的推理渐隐遮罩读取同一组值。
+
+两条规则让结果保持可读而不是"染色"：大面积表面只带 4–8% 彩度，色相读作一层色调而非一块颜色；饱和色只出现在小面积上——链接、焦点环、选中态与导航强调。主按钮、提示条、Tooltip 与遮罩保留中性填充作为锚点。因为这张表只重绑语义层，删除它及其 import 即可精确恢复上游配色；`design-platform.css` 保持不动，上游同步仍可干净合并。
+
+`boot-theme.client.spec.ts` 固定画布色字面值，`menu-surfaces.client.spec.ts` 接受本表作为菜单材质 token 的第二个合法持有者。
 
 ### 偏好持久化
 
