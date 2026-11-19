@@ -190,22 +190,32 @@ function callerCancelled(signal: AbortSignal): boolean {
   return signal.aborted && !(reason instanceof Error && reason.name === 'TimeoutError')
 }
 
+/**
+ * Stamp one failure diagnostic with its report time.
+ * Redirected standard error carries no timestamps, so a line without `at` cannot be placed after the fact.
+ * @param detail - non-secret diagnostic fields for this failure.
+ * @returns the same fields plus the UTC report time.
+ */
+function timed(detail: Record<string, unknown>): Record<string, unknown> {
+  return { at: new Date().toISOString(), ...detail }
+}
+
 async function platformRequest(url: string, init: RequestInit, signal: AbortSignal): Promise<unknown> {
   const path = new URL(url).pathname
   let response: Response
   try {
     response = await fetch(url, { ...init, redirect: 'error', signal })
   } catch {
-    if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', { path, errorCode: 'no-response', aborted: signal.aborted })
+    if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', timed({ path, errorCode: 'no-response', aborted: signal.aborted }))
     throw new PlatformAuthError('no-response')
   }
   if (response.status === 401 && new Headers(init.headers).has(ACCOUNT_TOKEN_HEADER)) {
-    if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', { path, status: response.status, errorCode: 'expired' })
+    if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', timed({ path, status: response.status, errorCode: 'expired' }))
     await response.body?.cancel()
     throw new AccountUnauthorizedError()
   }
   if (!response.ok || response.body === null) {
-    if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', { path, status: response.status, errorCode: 'network' })
+    if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', timed({ path, status: response.status, errorCode: 'network' }))
     await response.body?.cancel()
     throw new PlatformAuthError('network')
   }
@@ -225,6 +235,11 @@ async function platformRequest(url: string, init: RequestInit, signal: AbortSign
         throw new PlatformAuthError('protocol')
       }
       chunks.push(next.value)
+    }
+    if (size === 0) {
+      // A successful status with no body, such as 202 from a throttling intermediary, leaves nothing to parse.
+      stage = 'empty-body'
+      throw new PlatformAuthError('protocol')
     }
     stage = 'parse-json'
     const payload: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'))
@@ -248,11 +263,11 @@ async function platformRequest(url: string, init: RequestInit, signal: AbortSign
     }
     return parsed.data.data.biz_data
   } catch (error) {
-    if (!callerCancelled(signal)) console.error('[deepseek-account] response rejected', {
+    if (!callerCancelled(signal)) console.error('[deepseek-account] response rejected', timed({
       path, status: response.status, stage, code: codes?.code, bizCode: codes?.data?.biz_code,
       issues: validationError?.issues.map(issue => ({ path: issue.path, code: issue.code })),
       errorCode: error instanceof PlatformAuthError ? error.code : 'protocol',
-    })
+    }))
     if (error instanceof PlatformAuthError) throw error
     throw new PlatformAuthError('protocol')
   } finally {
