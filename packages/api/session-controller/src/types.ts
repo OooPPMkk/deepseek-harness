@@ -199,6 +199,10 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'session/title-invalid': { readonly sessionId: SessionId }
     'session/fork-unavailable': { readonly sessionId: SessionId }
     'session/migration-required': { readonly sessionId: SessionId }
+    /** A deletion the Host refused while the Session's log is still in use. */
+    'session/delete-busy': { readonly sessionId: SessionId; readonly reason: 'agent-running' | 'open-handle' | 'foreign-writer' | 'agent-unavailable' }
+    /** A deletion the Host could not complete; the stored Session may still exist. */
+    'session/delete-failed': { readonly sessionId: SessionId; readonly reason: string }
     'subagent/not-found': {
       readonly parentSessionId: SessionId
       readonly childSessionId: SessionId
@@ -296,6 +300,16 @@ export interface SessionRenameRequest {
 export interface SessionRenameValue {
   readonly title: string
   readonly seq: number
+}
+
+/** Session deletion request. */
+export interface SessionDeleteRequest {
+  readonly sessionId: SessionId
+}
+
+/** Deleted Session identity and whether a live Agent was torn down first. */
+export interface SessionDeleteValue {
+  readonly sessionId: SessionId
 }
 
 /** Session fork request. */

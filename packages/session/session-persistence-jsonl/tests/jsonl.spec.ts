@@ -10,7 +10,9 @@ import { scheduler } from 'node:timers/promises'
 import { SESSION_FORMAT_VERSION, SessionLogOffset, SessionSeq, type SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
+import { SessionPersistenceNotFoundError } from '@deepseek-ai/dsh-session-persistence'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import { SessionWriteLease } from '../src/lease.ts'
 import {
   assertNoRetiredHeaderFields, encodeSegment, eventLines, generationLogFilename, generationLogPath,
   logPath, parseGenerationLogFilename, projectDir, projectKey, scanLog, sessionDir, SessionLogScanner,
@@ -2974,5 +2976,78 @@ describe('JsonlSessionPersistence listing concurrency', () => {
     await expect(listingCtx.sessionPersistence.list()).rejects.toBe(laterSessionFailure)
     listingProbe.failures.set(earlierSession, earlierSessionFailure)
     await expect(listingCtx.sessionPersistence.list()).rejects.toBe(earlierSessionFailure)
+  })
+})
+
+describe('JsonlSessionPersistence: deletion', () => {
+  let ctx: Context
+  beforeEach(async () => {
+    root = await freshRoot()
+    ctx = new Context()
+    await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
+  })
+  afterEach(async () => { await ctx.fiber.dispose() })
+
+  it('removes the Session directory, its listing row, and the id from stat', async () => {
+    const m = meta('delete-me', '/work')
+    await writeLog(ctx.sessionPersistence, m, oneTurnLog())
+    const dir = sessionDir(root, '/work', m.id)
+    expect((await stat(dir)).isDirectory()).toBe(true)
+    expect((await ctx.sessionPersistence.list()).map(s => s.header.id)).toEqual(['delete-me'])
+
+    await ctx.sessionPersistence.delete(m.id)
+
+    await expect(stat(dir)).rejects.toThrow()
+    expect(await ctx.sessionPersistence.list()).toEqual([])
+    expect(await ctx.sessionPersistence.stat(m.id)).toBeUndefined()
+  })
+
+  it('rejects an id with no durable artifact', async () => {
+    await expect(ctx.sessionPersistence.delete(brandString<SessionId>('absent')))
+      .rejects.toBeInstanceOf(SessionPersistenceNotFoundError)
+  })
+
+  it('refuses while a read handle is open and succeeds after it closes', async () => {
+    const m = meta('open-reader', '/work')
+    await writeLog(ctx.sessionPersistence, m, oneTurnLog())
+    const reader = await ctx.sessionPersistence.open(m.id, 'read')
+    await expect(ctx.sessionPersistence.delete(m.id))
+      .rejects.toMatchObject({ name: 'SessionDeleteBusyError', reason: 'open-handle' })
+    await reader.close()
+
+    await ctx.sessionPersistence.delete(m.id)
+    expect(await ctx.sessionPersistence.stat(m.id)).toBeUndefined()
+  })
+
+  it('refuses while a write handle is open', async () => {
+    const m = meta('open-writer', '/work')
+    const writer = await ctx.sessionPersistence.create(m)
+    await writer.append(oneTurnLog())
+    await expect(ctx.sessionPersistence.delete(m.id))
+      .rejects.toMatchObject({ name: 'SessionDeleteBusyError', reason: 'open-handle' })
+    await writer.close()
+    await ctx.sessionPersistence.delete(m.id)
+  })
+
+  it('refuses while another holder owns the cross-process lease', async () => {
+    const m = meta('foreign-writer', '/work')
+    await writeLog(ctx.sessionPersistence, m, oneTurnLog())
+    const dir = sessionDir(root, '/work', m.id)
+    const foreign = await SessionWriteLease.acquire(dir, m.id)
+    await expect(ctx.sessionPersistence.delete(m.id))
+      .rejects.toMatchObject({ name: 'SessionDeleteBusyError', reason: 'foreign-writer' })
+    await foreign.release()
+
+    await ctx.sessionPersistence.delete(m.id)
+    expect(await ctx.sessionPersistence.list()).toEqual([])
+  })
+
+  it('observes cancellation before touching storage', async () => {
+    const m = meta('aborted-delete', '/work')
+    await writeLog(ctx.sessionPersistence, m, oneTurnLog())
+    const reason = new Error('delete cancelled')
+    await expect(ctx.sessionPersistence.delete(m.id, { signal: AbortSignal.abort(reason) }))
+      .rejects.toBe(reason)
+    expect((await stat(sessionDir(root, '/work', m.id))).isDirectory()).toBe(true)
   })
 })

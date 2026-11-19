@@ -4,7 +4,7 @@ import type {} from '@deepseek-ai/dsh-fs'
 import { randomUUID } from 'node:crypto'
 import { mkdir } from 'node:fs/promises'
 import type { Context } from '@deepseek-ai/cordis'
-import type { Agent, AgentOptions, AgentSetup } from '@deepseek-ai/dsh-agent'
+import type { Agent, AgentHandle, AgentOptions, AgentSetup } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-default-model'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
@@ -52,6 +52,17 @@ export class ApiSessionPresetConflict extends Error {
 
 /** A blank Session chosen for reuse started a turn before this Host acquired its writer. */
 class ApiSessionStartedSinceObserved extends Error {}
+
+/**
+ * A live Agent this controller did not create, so it holds no teardown
+ * capability for it. Config-created Agents belong to the loop fiber.
+ */
+export class ApiSessionUnownedAgent extends Error {
+  /** @param sessionId - Session whose live Agent has another owner. */
+  constructor(readonly sessionId: SessionId) {
+    super(`session "${sessionId}" runs an Agent owned outside the API Session controller`)
+  }
+}
 
 /** Placement and Agent preset for one Session created for a new conversation. */
 export interface ApiSessionCreateRequest {
@@ -118,6 +129,12 @@ export class ApiSessionAgentController {
   private readonly resumes = new Map<SessionId, Promise<Agent>>()
   private readonly claims = new Map<SessionId, Promise<void>>()
   private readonly imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
+  /**
+   * Teardown capabilities for the Agents this controller created or resumed.
+   * `AgentHandle.dispose()` is the only way to stop a live Agent, so a
+   * deletion keeps the handles it owns instead of discarding them.
+   */
+  private readonly handles = new Map<SessionId, AgentHandle>()
 
   /** @param ctx - Host context carrying Agent, model, persistence, and Typert services. */
   constructor(private readonly ctx: Context) {}
@@ -151,6 +168,44 @@ export class ApiSessionAgentController {
    */
   async resolveAgent(sessionId: SessionId): Promise<ApiSessionAgentResult> {
     return this.resolve(sessionId)
+  }
+
+  /**
+   * Tear down the live Agent of one Session so its stored log can be removed.
+   *
+   * A deletion needs the writer closed first: `AgentHandle.dispose()` stops the
+   * loop, awaits its exit, unregisters the Agent, and removes the Session from
+   * the store, which also releases the durable write handle. Runs the teardown
+   * through the capability this controller kept from creation or resume.
+   * @param sessionId - ordinary Session identity about to be deleted.
+   * @returns whether a live Agent was disposed; false when the Session was not
+   *   running in this process.
+   * @throws {ApiSessionSubagentOwnership} when subagent routing owns the identity.
+   * @throws {ApiSessionUnownedAgent} when the live Agent belongs to another owner.
+   */
+  async disposeForDeletion(sessionId: SessionId): Promise<boolean> {
+    const handle = this.handles.get(sessionId)
+    if (handle === undefined) {
+      const live = this.ctx.agents.get(sessionId)
+      if (live === undefined) return false
+      if (hasApiSessionSubagentOwner(live.session)) throw new ApiSessionSubagentOwnership(sessionId)
+      throw new ApiSessionUnownedAgent(sessionId)
+    }
+    // Drop the capability first: a concurrent deletion must not dispose twice.
+    this.handles.delete(sessionId)
+    await handle.dispose()
+    return true
+  }
+
+  /**
+   * Keep the teardown capability of an Agent this controller just created or
+   * resumed. The first capability for a Session wins; a later resume of the
+   * same live Agent would otherwise overwrite (and leak) the earlier one.
+   * @param handle - handle returned by `ctx.agents.create` or `ctx.agents.resume`.
+   */
+  private retain(handle: AgentHandle): void {
+    const id = handle.agent.id
+    if (!this.handles.has(id)) this.handles.set(id, handle)
   }
 
   /**
@@ -311,11 +366,13 @@ export class ApiSessionAgentController {
     if (published !== undefined && hasApiSessionSubagentOwner(published)) {
       throw new ApiSessionSubagentOwnership(sessionId)
     }
-    return (await this.ctx.agents.resume({
+    const handle = await this.ctx.agents.resume({
       resumeSessionId: sessionId,
       agentOptions: this.agentOptions(),
       setup: composition.setup,
-    })).agent
+    })
+    this.retain(handle)
+    return handle.agent
   }
 
   private async inOrder<Value>(sessionId: SessionId, operation: () => Promise<Value>): Promise<Value> {
@@ -365,11 +422,13 @@ export class ApiSessionAgentController {
     if (!reusable) return this.createMinted(request.cwd, composition)
     this.assertPresetApplicable(sessionId, request.agentPreset)
     try {
-      return (await this.ctx.agents.resume({
+      const handle = await this.ctx.agents.resume({
         resumeSessionId: sessionId,
         agentOptions: this.agentOptions(),
         setup: this.reuseSetup(composition),
-      })).agent
+      })
+      this.retain(handle)
+      return handle.agent
     } catch (error: unknown) {
       if (error instanceof ApiSessionStartedSinceObserved) return this.createMinted(request.cwd, composition)
       if (!(error instanceof Error) || error.name !== 'SessionAlreadyOwnedError') throw error
@@ -440,7 +499,7 @@ export class ApiSessionAgentController {
     } catch (error: unknown) {
       throw new Error(`failed to ensure project directory "${cwd}": ${String(error)}`, { cause: error })
     }
-    return (await this.ctx.agents.create({
+    const handle = await this.ctx.agents.create({
       sessionId,
       agentOptions: this.agentOptions(),
       meta: {
@@ -448,7 +507,9 @@ export class ApiSessionAgentController {
         ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }),
       },
       setup: composition.setup,
-    })).agent
+    })
+    this.retain(handle)
+    return handle.agent
   }
 
   /** The canonical spelling of a project directory, which new headers record; see SessionHeader.cwd. */

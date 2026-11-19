@@ -26,6 +26,7 @@ export type {
 export {
   SessionAlreadyExistsError,
   SessionAlreadyOwnedError,
+  SessionDeleteBusyError,
   SessionFormatUnsupportedError,
   SessionHandleClosedError,
   SessionOwnershipLostError,
@@ -131,6 +132,12 @@ export interface SessionPersistenceListOptions {
   readonly signal?: AbortSignal
 }
 
+/** Options for {@link SessionPersistence.delete}. */
+export interface SessionPersistenceDeleteOptions {
+  /** Optional cancellation observed before the removal starts. */
+  readonly signal?: AbortSignal
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     sessionPersistence: SessionPersistence
@@ -231,6 +238,27 @@ export abstract class SessionPersistence extends Service {
    * @returns one snapshot per stored session.
    */
   abstract list(options?: SessionPersistenceListOptions): Promise<readonly SessionPersistenceSnapshot[]>
+
+  /**
+   * Remove one stored Session's durable artifacts.
+   *
+   * Deletion is irreversible and is the only operation that retracts a stored
+   * Session; a backend that keeps one artifact per Session removes that
+   * artifact together with its ownership record and any stale temporary or
+   * earlier-generation files beside it. A backend with no artifact for the id
+   * throws {@link SessionPersistenceNotFoundError}.
+   *
+   * The stored Session must be idle: the caller closes every handle first.
+   * A backend refuses while any handle in this process still serves the
+   * Session, and while a writer in another process holds ownership, so a
+   * deletion can never unlink a log another writer is appending to.
+   * @param id - the stored Session to remove.
+   * @param options - optional cancellation observed before the removal starts.
+   * @throws {SessionPersistenceNotFoundError} when the Session does not exist.
+   * @throws {SessionDeleteBusyError} when a handle or a foreign writer still
+   *   owns the Session.
+   */
+  abstract delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void>
 }
 
 export default SessionPersistence

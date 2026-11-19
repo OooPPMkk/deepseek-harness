@@ -43,6 +43,8 @@ import type {
   SessionControlFrame,
   SessionCreateRequest,
   SessionCreateValue,
+  SessionDeleteRequest,
+  SessionDeleteValue,
   SessionFollowFrame,
   SessionFollowRequest,
   SessionForkRequest,
@@ -400,6 +402,22 @@ export class SessionController extends TypertRemoteService {
     }
     signal.throwIfAborted()
     return hostPath
+  }
+
+  /**
+   * Delete one stored Session and everything this Host holds for it. A live
+   * Agent is torn down first, so the durable write handle is closed before the
+   * log is removed; the removal is irreversible.
+   * @param request - Session identity to delete.
+   * @returns the deleted identity.
+   */
+  @Remote('delete')
+  async delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
+    const deleted = await this.commands.delete(request)
+    // A live Agent's disposal already published the removal; repeating it keeps
+    // a cold Session's row from lingering in every connected client.
+    this.ctx.emit('api-session/removed', deleted.sessionId)
+    return deleted
   }
 
   /**

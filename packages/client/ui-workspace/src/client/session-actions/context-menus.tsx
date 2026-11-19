@@ -7,10 +7,11 @@ import type { MenuContribution, ContextMenuTargetMap } from '@deepseek-ai/dsh-cl
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-client-ui-session-status/client'
 import type {
-  ArchiveSessionInjected, ForkSessionInjected, PinSessionInjected, RenameSessionInjected, SessionIdInjected,
+  ArchiveSessionInjected, DeleteSessionInjected, ForkSessionInjected, PinSessionInjected, RenameSessionInjected,
+  SessionIdInjected,
 } from '../contract/slots.ts'
 
-type Actions = Omit<PinSessionInjected & ArchiveSessionInjected, 'hooks'>
+type Actions = Omit<PinSessionInjected & ArchiveSessionInjected & DeleteSessionInjected, 'hooks'>
   & ForkSessionInjected & RenameSessionInjected & SessionIdInjected
   & { readonly markSession: (sessionId: SessionId, unread: boolean) => void }
 
@@ -83,4 +84,10 @@ export function registerSessionMenus(ctx: Context, actions: Actions): void {
       run: () => { (restoring ? actions.unarchiveSession : actions.archiveSession)(target.sessionId) },
     }]
   })
+  // The last entry: permanent removal reads as the destructive counterpart of
+  // the archive above, so it keeps the icon slot's own danger styling.
+  register('delete', 650, ['session/delete'], target => allowed(target, 'session/delete') ? [{
+    id: 'delete', label: t('menu.deleteSession'), icon: { key: 'workspace.delete' }, danger: true, afterContent: true,
+    run: () => { actions.requestSessionDelete(target.sessionId) },
+  }] : [])
 }

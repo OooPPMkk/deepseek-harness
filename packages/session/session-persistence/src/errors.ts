@@ -36,6 +36,25 @@ export class SessionAlreadyOwnedError extends Error {
   }
 }
 
+/**
+ * `delete` found the Session's artifact still reachable by a live handle, so
+ * removing it would either tear a resident log or unlink a file a reader still
+ * holds. The caller closes the handle (or the owning process) and retries.
+ */
+export class SessionDeleteBusyError extends Error {
+  /**
+   * @param sessionId - the Session whose artifact is still in use.
+   * @param reason - which holder refused the removal: an open handle in this
+   *   process, or a writer owned by another process.
+   */
+  constructor(readonly sessionId: SessionId, readonly reason: 'open-handle' | 'foreign-writer') {
+    super(reason === 'open-handle'
+      ? `session "${sessionId}" is open in this process; close its handles before deleting`
+      : `session "${sessionId}" is owned by a write handle in another process`)
+    this.name = 'SessionDeleteBusyError'
+  }
+}
+
 /** A mutation (`append`/`flush`) was called on a read handle. */
 export class SessionReadOnlyError extends Error {
   /**

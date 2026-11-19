@@ -7,6 +7,7 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type {
   SessionControlBaseline,
   SessionControlFrame,
+  SessionDeleteValue,
   SessionProjectionHints,
   SessionRenameValue,
   SessionSummary,
@@ -552,6 +553,22 @@ export class SessionManager {
         sessionId: childId, updatedAt: Date.now(), running: false, blank: true,
         ...(source?.cwd !== undefined ? { cwd: source.cwd } : {}),
       } })
+    }
+    return result
+  }
+
+  /**
+   * Delete a stored Session without opening it. The Host tears down a live
+   * Agent first and then removes the log; the row leaves this client
+   * immediately, before the Host's own removal frame arrives.
+   * @param sessionId - Session to delete.
+   * @returns the Host result; a failure leaves the row in place.
+   */
+  async deleteSession(sessionId: SessionId): Promise<RemoteResult<SessionDeleteValue>> {
+    const result = await this.remote.session.delete({ sessionId })
+    if (result.ok) {
+      this.recordMutation({ kind: 'remove', sessionId })
+      this.sessions.get(sessionId)?.handleRemoved()
     }
     return result
   }

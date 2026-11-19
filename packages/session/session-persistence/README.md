@@ -33,7 +33,7 @@ Shipped profiles use the [JSONL](../session-persistence-jsonl/README.md) backend
 
 ### What the service provides
 
-With a backend mounted, five service methods address stored sessions:
+With a backend mounted, six service methods address stored sessions:
 
 ```text
 const handle = await ctx.sessionPersistence.create(header)     // store a new session, take write ownership
@@ -42,11 +42,14 @@ const reader = await ctx.sessionPersistence.open(id, 'read')   // observe withou
 const snap = await ctx.sessionPersistence.stat(id)             // header + revision (+ eventCount / sizeBytes) without a log read
 const all = await ctx.sessionPersistence.list()                // one snapshot per visible stored session
 await ctx.sessionPersistence.flush()                           // backend-wide durability barrier over every active write handle
+await ctx.sessionPersistence.delete(id)                        // remove one stored session and its artifacts
 ```
 
 Service-level `flush()` drains every active write handle's routed events and materializes its session, exactly as each handle's own `flush` would; failures aggregate per session as an `AggregateError` without abandoning the sweep, and a handle closed mid-sweep counts as flushed because close itself drains durably.
 
 `create(header, { source, inheritedEventCount })` durably stores the complete fork history before returning the writer. `source.events` runs from seq 0: the parent's stored prefix through the exclusive `source.endSeq`, then the child's events; when `header.isSeeded` is true, they contain the inherited marker at `inheritedEventCount`. A backend that shares the prefix requires the parent to exist with at least `endSeq` persisted events and writes only the remainder; a copying backend writes all of them. Later parent appends do not change the child. See [`SessionPersistenceCreateOptions`](src/index.ts) for the source fields and creation failures.
+
+`delete(id)` removes one stored session and everything the backend keeps for it, and is irreversible. It refuses with `SessionDeleteBusyError` while this backend instance holds a handle for that id (`open-handle`) or another process owns the log (`foreign-writer`), and with `SessionPersistenceNotFoundError` for an unknown id; every other failure is the provider's own and leaves the stored session in place.
 
 Every log read and write flows through the returned `SessionHandle`; there are no id-addressed append or load methods. `handle.read(offset?, length?)` returns `{ eventState, events }`: the outer slice belongs to the caller, while `eventState` distinguishes an exclusively `detached` event graph from a `shared-frozen` graph that may also reside in a backend cache. The producer establishes this state and slices preserve it even when empty. Both states are safe to adopt without copying; a consumer that needs mutable events clones them first. Reads never include a torn tail, repeated reads on one handle never observe an older state than a prior read, and a write handle reads its own successful appends. `handle.append(events)` appends a contiguous batch whose first `seq` equals the stored next-seq; persistence is best-effort on resolution — the batch is accepted, ordered, and visible to reads on this backend instance, and only a resolved `flush` promises it survives a crash (the shipped JSONL backend happens to persist each batch immediately). `handle.flush()` is the durability barrier and also materializes an empty created session so it becomes durably listable. `handle.close()` is idempotent and uncancellable: a read handle frees local resources; a write handle completes pending durability and releases write ownership. Once an `append` or `flush` resolves, reads started afterwards on the same backend instance — on any handle, or through `stat`/`list` — observe at least that prefix.
 
@@ -152,7 +155,7 @@ These limits define where the seam's guarantees stop. They are current package c
 - **The seam guarantees write ownership only within one backend instance** — cross-process exclusion is provider-specific. The shipped JSONL provider adds a kernel-backed lease across instances and processes; another provider must document an equivalent guarantee or require deployments to prevent concurrent writers.
 - **A backend plugin reload under live sessions fails their writers loudly** — a reloaded backend cannot serve handles the old instance issued; writes fail until the sessions restart, and nothing silently re-adopts the logs.
 - **Only handle-acquired sessions persist** — `ctx.sessions.create` + `session/flush` alone stores nothing; agent-loop is the production acquisition point, and tests seed storage through `create`/`append`/`close`.
-- **No deletion or retention API** — pruning stored sessions is out-of-band backend maintenance.
+- **Deletion is per session and irreversible** — `delete` removes one stored session, but there is no retention policy or bulk pruning; those remain out-of-band backend maintenance.
 - **`list()` is unpaginated and unfiltered** — it returns every stored session's snapshot; fine for local stores, unindexed at scale.
 - **Synthetic closers are the only crash story** — resume appends `interruptedTurnClosers` through the write handle; there is no partial-turn resume that continues an interrupted turn instead of closing it.
 

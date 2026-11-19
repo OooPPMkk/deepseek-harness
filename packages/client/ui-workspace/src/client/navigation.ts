@@ -103,6 +103,13 @@ export interface UiWorkspace {
    */
   unarchiveSession(sessionId: SessionId): Promise<void>
   /**
+   * Delete a Session's stored log from this host and clear it when it is the
+   * current selection. The Workspace registry keeps its recorded id: the row
+   * disappears with the list entry, so the membership resolves to nothing.
+   * @param sessionId - Session to delete permanently.
+   */
+  deleteSession(sessionId: SessionId): Promise<void>
+  /**
    * Pin a Session on the Host, then lead it in its accounts' saved orders
    * (its Workspace group or Ungrouped, and the flat list). The order write
    * reads the memberships current at completion, so reorders that landed
@@ -395,6 +402,11 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   async unarchiveSession(sessionId: SessionId): Promise<void> {
     await this.workspaces.unarchiveSession(sessionId)
+  }
+
+  async deleteSession(sessionId: SessionId): Promise<void> {
+    await this.sessions.delete(sessionId)
+    if (this.mainReference?.sessionId === sessionId) this.clearMain()
   }
 
   async pinSession(sessionId: SessionId): Promise<void> {

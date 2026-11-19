@@ -31,6 +31,7 @@ import {
   ApiSessionCwdConflict,
   ApiSessionPresetConflict,
   ApiSessionSubagentOwnership,
+  ApiSessionUnownedAgent,
   apiSessionSubagentOwnershipError,
   hasApiSessionSubagentOwner,
   type ApiSessionCreated,
@@ -42,6 +43,8 @@ import type {
   SessionCancelValue,
   SessionCreateRequest,
   SessionCreateValue,
+  SessionDeleteRequest,
+  SessionDeleteValue,
   SessionForkRequest,
   SessionForkValue,
   SessionPromptRequest,
@@ -192,6 +195,59 @@ export class SessionCommandController {
         )
       }
     })
+  }
+
+  /**
+   * Delete one stored Session. A live Agent is torn down first: its handle is
+   * the only way to close the durable write handle before the log is removed.
+   * @param request - Session identity.
+   * @returns the deleted identity.
+   * @throws RemoteError `session/not-found` when no log is stored;
+   *   `session/delete-busy` when a live Agent belongs to another owner or a
+   *   writer still holds the log; `session/delete-failed` when the removal
+   *   could not complete.
+   */
+  async delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
+    const sessionId = request.sessionId
+    const persistence = this.ctx.get('sessionPersistence')
+    if (persistence === undefined) {
+      throw new RemoteError(
+        'gateway/internal',
+        'deleting a Session requires a mounted @deepseek-ai/dsh-session-persistence',
+        {},
+      )
+    }
+    try {
+      await this.agents.disposeForDeletion(sessionId)
+    } catch (error: unknown) {
+      if (error instanceof ApiSessionSubagentOwnership || error instanceof ApiSessionUnownedAgent) {
+        throw new RemoteError('session/delete-busy', error.message, { sessionId, reason: 'agent-unavailable' })
+      }
+      throw new RemoteError(
+        'session/delete-failed',
+        `failed to stop session "${sessionId}" before deleting it: ${String(error)}`,
+        { sessionId, reason: error instanceof Error ? error.message : String(error) },
+      )
+    }
+    try {
+      await persistence.delete(sessionId)
+    } catch (error: unknown) {
+      // Delete is the one command that requires persistence, so its refusals
+      // load here instead of at module scope where the optional peer may be absent.
+      const { SessionDeleteBusyError, SessionPersistenceNotFoundError } = await import('@deepseek-ai/dsh-session-persistence')
+      if (error instanceof SessionPersistenceNotFoundError) {
+        throw new RemoteError('session/not-found', error.message, { sessionId })
+      }
+      if (error instanceof SessionDeleteBusyError) {
+        throw new RemoteError('session/delete-busy', error.message, { sessionId, reason: error.reason })
+      }
+      throw new RemoteError(
+        'session/delete-failed',
+        `failed to delete session "${sessionId}": ${String(error)}`,
+        { sessionId, reason: error instanceof Error ? error.message : String(error) },
+      )
+    }
+    return { sessionId }
   }
 
   /**
