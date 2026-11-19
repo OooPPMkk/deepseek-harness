@@ -17,6 +17,8 @@ import { en } from '../src/client/locales.ts'
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
+// The shell reads the active locale for the local update record's language.
+const useLocale: SidebarRootComponentProps['useLocale'] = selector => selector({ active: 'en', locales: [], revision: 0 })
 
 /** Pinned column box; the shell compares pointer coordinates against it. */
 const COLUMN_WIDTH = 280
@@ -46,6 +48,7 @@ function mountColumn(): { column: HTMLElement; quiet: () => boolean } {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}

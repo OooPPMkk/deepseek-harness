@@ -3,7 +3,7 @@ import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ShortcutCatalogEntry, ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { Menu, Modal, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ReactNode } from 'react'
@@ -15,12 +15,15 @@ import type {
 } from '../src/client/contract/slots.ts'
 import { HeaderLeadingControls, type HeaderLeadingControlsProps } from '../src/client/HeaderLeadingControls.tsx'
 import { SidebarRoot } from '../src/client/SidebarRoot.tsx'
+import { RELEASE_NOTES, releaseNoteText } from '../src/client/release-notes.ts'
 import { en } from '../src/client/locales.ts'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
+// The shell reads the active locale for the local update record's language.
+const useLocale: SidebarRootComponentProps['useLocale'] = selector => selector({ active: 'en', locales: [], revision: 0 })
 
 const t: SidebarRootComponentProps['t'] = makeTranslate({ ...commonEn, ...en })
 
@@ -44,7 +47,7 @@ function makeHeaderProps(): HeaderLeadingControlsProps {
     useContextMenu: contextMenuHook(),
     useSessions: neverHook, useSessionStatus, useSessionRetainInfo: neverHook,
     usePanelInfo, useResource, useWorkspaces: neverHook, ...allowAllAccess,
-    usePanels: selector => selector([]), useShortcuts: selector => selector([]),
+    usePanels: selector => selector([]), useShortcuts: selector => selector([]), useLocale,
     useEntryPins: selector => selector([]), useEntryActions: selector => selector(false),
     selectPanel: vi.fn(), setPinned: vi.fn(), toggleSidebar: vi.fn(),
     startSession: vi.fn(), trackEntryClick: vi.fn(), t,
@@ -79,6 +82,7 @@ function mountShell({ collapsed = false, width = 300, drawer = false, shortcuts 
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector(panels)} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector(shortcuts)}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={startSession} toggleSidebar={toggleSidebar} trackEntryClick={trackEntryClick} t={t}
@@ -191,7 +195,7 @@ describe('SidebarRoot shell', () => {
       useSessionRetainInfo={neverHook} useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       usePanels={select => select([])} useEntryPins={select => select([])}
-      useEntryActions={select => select(false)} setPinned={vi.fn()} useShortcuts={select => select([shortcut])} />)
+      useEntryActions={select => select(false)} setPinned={vi.fn()} useShortcuts={select => select([shortcut])} useLocale={useLocale} />)
     const button = screen.getByRole('button', { name: 'New session' })
     expect(screen.getByRole('button', { name: 'Open sidebar' }).hasAttribute('data-sidebar-opener')).toBe(true)
     expect(button.getAttribute('aria-keyshortcuts')).toBe('Control+N')
@@ -236,6 +240,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       useRemoteAccess={useRemoteAccess}
@@ -269,6 +274,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
@@ -294,6 +300,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
@@ -323,6 +330,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={startSession} toggleSidebar={vi.fn()} trackEntryClick={trackEntryClick} t={t}
@@ -375,6 +383,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
@@ -384,6 +393,40 @@ describe('SidebarRoot shell', () => {
     />)
 
     expect(screen.getByText('DSH Local Build')).toBeTruthy()
+  })
+
+  it('offers no update record without a local build version', () => {
+    mountShell()
+    expect(screen.queryByRole('button', { name: en['releaseNotes.open'] })).toBeNull()
+  })
+
+  it('opens the update record from the badge row without starting a session', () => {
+    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', 'abcdef0')
+    vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+    const b = mountShell()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en['releaseNotes.open'] }))
+    expect(b.startSession).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: en['releaseNotes.title'] })).toBeTruthy()
+  })
+
+  it('names each date on the left and lists that day\u2019s times on the right', () => {
+    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', 'abcdef0')
+    vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+    mountShell()
+    fireEvent.click(screen.getByRole('button', { name: en['releaseNotes.open'] }))
+    const dialog = screen.getByRole('dialog', { name: en['releaseNotes.title'] })
+    const [newest, older] = RELEASE_NOTES
+    if (newest === undefined || older === undefined) throw new Error('fixture needs two update days')
+    const times = () => Array.from(dialog.querySelectorAll('time'), node => node.textContent)
+    // The newest day opens selected, so its changes and stamps are already shown.
+    expect(times()).toEqual(newest.items.map(item => item.time))
+    const dayButtons = within(dialog).getAllByRole('button').filter(button => button.getAttribute('aria-current') !== null)
+    expect(dayButtons).toHaveLength(1)
+    // Selecting another date swaps the detail without closing the record.
+    fireEvent.click(within(dialog).getByRole('button', { name: new RegExp(older.date) }))
+    expect(times()).toEqual(older.items.map(item => item.time))
+    expect(within(dialog).getByRole('heading', { level: 3, name: releaseNoteText(older.title, 'en') })).toBeTruthy()
   })
 
   it('hands the region its wide flag and clamps expandSidebar to the collapsed state', () => {
@@ -447,6 +490,7 @@ describe('SidebarRoot shell', () => {
       usePanelInfo={usePanelInfo} selectPanel={() => {}} usePanels={selector => selector([])} useEntryPins={selector => selector([])}
       useEntryActions={selector => selector(false)} setPinned={vi.fn()}
       useShortcuts={selector => selector([])}
+      useLocale={useLocale}
       useContextMenu={contextMenuHook()} useResource={useResource} useWorkspaces={neverHook}
       {...allowAllAccess}
       startSession={vi.fn()} toggleSidebar={vi.fn()} trackEntryClick={vi.fn()} t={t}
