@@ -142,6 +142,15 @@ export interface ISessions {
     allowMigration?: boolean
   }): Promise<SessionId>
   /**
+   * Delete one stored Session. The Host tears down a live Agent and then
+   * removes the log; this Client drops the row immediately and does not open
+   * the Session first.
+   * @param sessionId - Session to delete.
+   * @returns resolution after the Host removed the stored Session.
+   * @throws {SessionDeleteError} when the Host refused or failed the deletion.
+   */
+  delete(sessionId: SessionId): Promise<void>
+  /**
    * Borrow an already-retained Agent-scoped Context without extending its lifetime.
    * @param id - session id.
    * @returns the live scoped Context, or undefined without a retained generation.

@@ -168,6 +168,20 @@ class FakeSessions implements ISessions {
   declare readonly scope: ISessions['scope']
   declare readonly scopeOf: ISessions['scopeOf']
   declare readonly sessionOf: ISessions['sessionOf']
+  readonly deleteCalls: SessionId[] = []
+  /** Mirrors the manager's removal projection: the row leaves the list. */
+  onDelete: ISessions['delete'] = async (sessionId) => {
+    this.list.update(state => ({
+      ...state,
+      ids: state.ids.filter(id => id !== sessionId),
+      byId: Object.fromEntries(Object.entries(state.byId).filter(([id]) => id !== sessionId)),
+    }))
+  }
+
+  async delete(sessionId: SessionId): Promise<void> {
+    this.deleteCalls.push(sessionId)
+    await this.onDelete(sessionId)
+  }
 
   constructor(initial: SessionListState) {
     this.list = new MutableSource(initial)
@@ -1536,6 +1550,31 @@ describe('UiWorkspaceService', () => {
     b.workspaces.onUnarchive = () => Promise.reject(new Error('unarchive rejected'))
     await expect(b.uiWorkspace.unarchiveSession(idle)).rejects.toThrow('unarchive rejected')
     expect(b.workspaces.unarchiveCalls).toEqual([idle, idle])
+  })
+
+  it('deletes through the Session controller and clears a deleted current Session', async () => {
+    const b = bench()
+    b.uiWorkspace.openSession(sid('current'))
+
+    await b.uiWorkspace.deleteSession(sid('current'))
+
+    expect(b.sessions.deleteCalls).toEqual([sid('current')])
+    expect(b.sessions.retained[0]!.release).toHaveBeenCalledOnce()
+    expect(b.selectPanel).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps the selection when another Session is deleted and preserves failures', async () => {
+    const idle = sid('idle')
+    const b = bench()
+    b.uiWorkspace.openSession(sid('current'))
+
+    await b.uiWorkspace.deleteSession(idle)
+    expect(b.sessions.deleteCalls).toEqual([idle])
+    expect(b.sessions.retained[0]!.release).not.toHaveBeenCalled()
+
+    b.sessions.onDelete = () => Promise.reject(new Error('delete rejected'))
+    await expect(b.uiWorkspace.deleteSession(idle)).rejects.toThrow('delete rejected')
+    expect(b.sessions.deleteCalls).toEqual([idle, idle])
   })
 
   it('passes directory operations to the Host and preserves structured browse failures', async () => {

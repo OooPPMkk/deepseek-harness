@@ -23,11 +23,12 @@ import pLimit, { type LimitFunction } from 'p-limit'
 import {
   SessionPersistence, SessionFormatUnsupportedError,
   SessionPersistenceCorruptionError,
-  SessionAlreadyExistsError, SessionPersistenceNotFoundError,
+  SessionAlreadyExistsError, SessionAlreadyOwnedError, SessionDeleteBusyError, SessionPersistenceNotFoundError,
   assertStoredId, materializeCreateHeader, sessionFormatVersionRefusal, validateStoredEvents,
   type SessionAccess, type SessionHandle,
   type SessionHandleReadResult,
   type SessionLocation, type SessionPersistenceCreateOptions,
+  type SessionPersistenceDeleteOptions,
   type SessionPersistenceListOptions, type SessionPersistenceOpenOptions,
   type SessionPersistenceSnapshot, type SessionPersistenceStatOptions,
   type SessionPersistenceRevision as PersistenceRevision,
@@ -584,6 +585,45 @@ class JsonlSessionPersistence extends SessionPersistence {
     }
     signal?.throwIfAborted()
     return snapshots
+  }
+
+  /**
+   * Remove one stored Session's directory, including its generations, write
+   * lease, and temporary publish residue. The id must be idle: an open handle
+   * in this process or a writer in another process refuses the removal before
+   * any file is touched.
+   * @param id - the stored Session to remove.
+   * @param options - optional cancellation observed before the removal starts.
+   * @throws {SessionPersistenceNotFoundError} when no artifact exists.
+   * @throws {SessionDeleteBusyError} when a handle or foreign writer owns it.
+   */
+  async delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void> {
+    options?.signal?.throwIfAborted()
+    for (const handle of this.tracker.openHandles) {
+      if (handle.id === id) throw new SessionDeleteBusyError(id, 'open-handle')
+    }
+    if (this.tracker.hasPending(id)) throw new SessionDeleteBusyError(id, 'open-handle')
+    const selected = await this.findLog(id, options?.signal)
+    if (selected === undefined) throw new SessionPersistenceNotFoundError(id)
+    const dir = dirname(selected.sourcePath)
+    options?.signal?.throwIfAborted()
+    // The kernel lease is the cross-process exclusion: acquiring it proves no
+    // other process is appending, and holding it covers the whole removal.
+    let lease: SessionWriteLease
+    try {
+      lease = await SessionWriteLease.acquire(dir, id)
+    } catch (error: unknown) {
+      if (error instanceof SessionAlreadyOwnedError) {
+        throw new SessionDeleteBusyError(id, 'foreign-writer')
+      }
+      throw error
+    }
+    try {
+      await rm(dir, { recursive: true, force: true })
+    } finally {
+      // POSIX release never removes the lock file, and the directory is gone.
+      await lease.release()
+    }
   }
 
   // --- handle-facing storage internals (package-private via the handle class below) ---

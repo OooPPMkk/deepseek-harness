@@ -10,7 +10,7 @@ import { RemoteStreamCarrierError } from '@deepseek-ai/dsh-api-gateway/client'
 import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session/types'
 import { ok, streamHandle, type RemoteMock } from '@deepseek-ai/dsh-remote-mock'
 import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
-import { ClientSessions, SessionCreateError, SessionForkError } from '../src/client/sessions/service.ts'
+import { ClientSessions, SessionCreateError, SessionDeleteError, SessionForkError } from '../src/client/sessions/service.ts'
 import { scopeOf } from '../src/client/scope.ts'
 import type {
   SessionAssistantStreamBaseline, SessionFollowFrame, SessionFollowRequest, SessionHistoryRecord,
@@ -930,6 +930,34 @@ describe('create', () => {
       rpcError: { code: 'session/workspace-attach-failed' },
     })
     expect(b.svc.list.getSnapshot().byId[sid('published')]).toMatchObject({ id: 'published', blank: true })
+  })
+})
+
+describe('delete', () => {
+  it('drops the Session from the projected list after the Host accepts', async ({ bench }) => {
+    const b = bench()
+    await feedList(b, [{ id: 'doomed' }, { id: 'kept' }])
+    const sessionId = sid('doomed')
+    b.mock.remote.session.delete.mockResolvedValueOnce(ok({ sessionId }))
+
+    await expect(b.svc.delete(sessionId)).resolves.toBeUndefined()
+
+    expect(b.mock.remote.session.delete).toHaveBeenCalledExactlyOnceWith({ sessionId })
+    expect(b.svc.list.getSnapshot().ids).toEqual([sid('kept')])
+  })
+
+  it('keeps the Session and carries the Host refusal', async ({ bench }) => {
+    const b = bench()
+    await feedList(b, [{ id: 'busy' }])
+    const sessionId = sid('busy')
+    const error = new RemoteError('session/delete-busy', 'busy', { sessionId, reason: 'foreign-writer' })
+    b.mock.remote.session.delete.mockResolvedValueOnce(err(error))
+
+    const failure = await b.svc.delete(sessionId).catch((cause: unknown) => cause)
+
+    expect(failure).toBeInstanceOf(SessionDeleteError)
+    expect(failure).toMatchObject({ sessionId, rpcError: error })
+    expect(b.svc.list.getSnapshot().ids).toEqual([sessionId])
   })
 })
 
