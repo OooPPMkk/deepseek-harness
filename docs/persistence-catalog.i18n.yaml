@@ -1413,8 +1413,8 @@
   en: 1bcbb9b46010fce3
   zh: 32b249013c544256
 /session-persistence-event-catalog/resolved-persistence-types/string:
-  en: 5266b7e8f6dfb88c
-  zh: 009c7af9bd3c41e0
+  en: 70e75138c4e30bd7
+  zh: 87ffb79763b6de44
 /session-persistence-event-catalog/resolved-persistence-types/string~2:
   en: 0089620bf4638263
   zh: 1922bef1713094bb
@@ -1524,8 +1524,8 @@
   en: 62beba431162c85e
   zh: 2a3aafe663ce31c6
 /session-persistence-event-catalog/resolved-persistence-types/clienttimezone-kind-user-principal-rpcid:
-  en: 90d6159479e5d717
-  zh: c4dbebd0950e55e9
+  en: dde87ab8256df574
+  zh: 8606a6b786a9271b
 /session-persistence-event-catalog/resolved-persistence-types/code-name-reason:
   en: 9fefd091da8de596
   zh: b8ffeab6b9eb73cb
@@ -1824,8 +1824,8 @@
   en: f58bccca3df9c2ad
   zh: 5c92b6edeb7ce020
 /session-persistence-event-catalog/resolved-persistence-types/kind-retry:
-  en: 898f27c058097895
-  zh: bbbcf08ad8ba3a32
+  en: 550b8a4f4a57fe5f
+  zh: 169a7ee4c45b3379
 /session-persistence-event-catalog/resolved-persistence-types/kind-runtime-context:
   en: 68b5598e21cf8ba2
   zh: 95ef1685af64a5f4
