@@ -106,7 +106,7 @@ describe('plugin configuration', () => {
     const ctx = new Context()
     onTestFinished(async () => { await ctx.fiber.dispose(); await rm(root, { recursive: true, force: true }) })
     const provider = new SqliteSessionPersistence(ctx, ctx, { root }, {
-      hasStoredJsonl: async () => false, list: async () => [], stat: async () => undefined,
+      hasStoredJsonl: async () => false, list: async () => [], stat: async () => undefined, delete: async () => {},
       prepare: async () => { throw new Error('no legacy history') },
     })
     const writer = await provider.create(header)
