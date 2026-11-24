@@ -74,6 +74,8 @@ The plugin supplies the existing persistence service and uses a JSONL provider i
 
 SQLite keeps thread metadata, predecessor-linked Segment metadata and frames: each durable write stores its batch, at most `frameEvents` events per frame, as JSON lines in one row keyed by Segment and start sequence, Zstandard-compressed under `compression: zstd` when that is smaller. A Segment's event count is its last frame's end. Reads select the frames overlapping the requested range, decompress them on the thread pool eight at a time, and take only the covered slice; a missing frame, a frame shorter than its recorded range, an unknown codec, or undecodable bytes reject the read as storage corruption. WAL is enabled before schema publication so a concurrent reader cannot prevent the first mode switch. Journal-mode lock contention retries within the five-second busy budget before any schema or Session write; persistent contention and other failures are reported. The backend owns write queues, live-event buffering, transaction completion and handle cleanup; callers do not address Segments.
 
+Removing a Session deletes its thread row and the Segments no surviving thread still reaches, since a fork shares its parent's persisted prefix. Triggers make frames and ancestry append-only, so the removal drops both delete guards inside its transaction and restores them before the commit; a failure anywhere rolls the rows and the guards back together. Routing is removed first, because a Session without its routing record still resolves through the database, while a record whose rows are gone would reject a listing.
+
 | Source | Responsibility |
 |---|---|
 | [persistence.ts](src/persistence.ts) | Service routing and durable JSONL takeover. |

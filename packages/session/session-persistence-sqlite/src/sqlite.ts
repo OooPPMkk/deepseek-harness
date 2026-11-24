@@ -14,7 +14,7 @@ import { SESSION_FORMAT_VERSION, KNOWN_SESSION_EVENT_TYPES, SessionLogOffset, Se
 import type { SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import { assertContiguous, materializeAppendBatch, validateStoredEvents, SessionAlreadyExistsError,
   SessionAlreadyOwnedError, SessionFormatUnsupportedError, SessionHandleClosedError, SessionPersistenceCorruptionError,
-  SessionPersistenceNotFoundError, SessionPersistenceRevision, SessionReadOnlyError,
+  SessionDeleteBusyError, SessionPersistenceNotFoundError, SessionPersistenceRevision, SessionReadOnlyError,
   sessionFormatVersionRefusal } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionAccess, SessionHandle, SessionHandleAppendOptions, SessionHandleFlushOptions,
   SessionHandleReadOptions, SessionPersistenceCreateOptions, SessionPersistenceSnapshot } from '@deepseek-ai/dsh-session-persistence'
@@ -65,9 +65,15 @@ const metadata = z.object({ header: z.string(), event_count: z.number().int().no
 const traceIdentity = z.object({ trace_uuid: z.string().transform(sessionIdentity) })
 const frameRow = z.object({ start_seq: z.number().int().nonnegative(), end_seq: z.number().int().positive(),
   codec: z.number().int(), payload: z.instanceof(Uint8Array) })
+/** One segment identifier selected as a named column. */
+const segmentColumn = z.object({ uuid: z.string() })
 const TRACE_METADATA_SQL = `SELECT t.trace_uuid, header, tail_segment_uuid, inherited_count, base_seq,
   base_seq + COALESCE((SELECT end_seq FROM frames WHERE segment_uuid = s.segment_uuid ORDER BY start_seq DESC LIMIT 1), 0) AS event_count
   FROM traces t LEFT JOIN segments s ON s.segment_uuid = t.tail_segment_uuid`
+/** Frame delete guard; declared separately so Trace removal can drop and restore exactly this trigger. */
+const FRAMES_NO_DELETE_TRIGGER = "CREATE TRIGGER frames_no_delete BEFORE DELETE ON frames BEGIN SELECT RAISE(ABORT, 'frames are append-only'); END;"
+/** Ancestry delete guard; declared separately so Trace removal can drop and restore exactly this trigger. */
+const ANCESTORS_NO_DELETE_TRIGGER = "CREATE TRIGGER ancestors_no_delete BEFORE DELETE ON segment_ancestors BEGIN SELECT RAISE(ABORT, 'segment ancestry is immutable'); END;"
 const segmentFields = { segment_uuid: z.string().transform(segmentId), event_count: z.number().int().nonnegative() }
 const segmentRow = z.union([
   z.object({ ...segmentFields, parent_segment_uuid: z.null(), parent_end_seq: z.null(), base_seq: z.literal(0) }),
@@ -303,7 +309,7 @@ export class SqliteStore {
       codec INTEGER NOT NULL CHECK(codec IN (0, 1)), payload BLOB NOT NULL, PRIMARY KEY(segment_uuid, start_seq)
     ) STRICT;
     CREATE TRIGGER frames_no_update BEFORE UPDATE ON frames BEGIN SELECT RAISE(ABORT, 'frames are append-only'); END;
-    CREATE TRIGGER frames_no_delete BEFORE DELETE ON frames BEGIN SELECT RAISE(ABORT, 'frames are append-only'); END;
+    ${FRAMES_NO_DELETE_TRIGGER}
     CREATE TRIGGER segments_no_reparent BEFORE UPDATE OF parent_segment_uuid, parent_end_seq, base_seq ON segments
       BEGIN SELECT RAISE(ABORT, 'segment ancestry is immutable'); END;
     PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${SCHEMA_VERSION};`)
@@ -325,8 +331,7 @@ export class SqliteStore {
     END;
     CREATE TRIGGER ancestors_no_update BEFORE UPDATE ON segment_ancestors
       BEGIN SELECT RAISE(ABORT, 'segment ancestry is immutable'); END;
-    CREATE TRIGGER ancestors_no_delete BEFORE DELETE ON segment_ancestors
-      BEGIN SELECT RAISE(ABORT, 'segment ancestry is immutable'); END;`)
+    ${ANCESTORS_NO_DELETE_TRIGGER}`)
   }
 
   private transaction<T>(db: DatabaseSync, operation: () => T, mode: 'IMMEDIATE' | 'DEFERRED' = 'IMMEDIATE'): T {
@@ -903,6 +908,78 @@ export class SqliteStore {
     const row = this.row(await this.database(), id)
     if (row === undefined) return undefined
     return this.snapshot(id, row, this.parseHeader(id, row.header))
+  }
+
+  /**
+   * Remove one Trace together with the Segments no remaining Trace can reach.
+   * A fork shares its parent's Segments, so a Segment another Trace still reaches
+   * stays; only the removed Trace's exclusive history is released. The append-only
+   * delete guards are dropped inside the transaction and restored before it commits,
+   * so a failure anywhere rolls them back with the rows.
+   * @param id - Trace to remove.
+   * @param signal - cancellation checked before the transaction starts.
+   * @throws {SessionDeleteBusyError} when this store holds a handle for `id`, a
+   *   creation is in flight, or another process owns the Session.
+   * @throws {SessionPersistenceNotFoundError} when no Trace has that id.
+   */
+  async delete(id: SessionId, signal?: AbortSignal): Promise<void> {
+    this.check(); signal?.throwIfAborted()
+    const owned = [...this.handles].some(handle => handle.id === id)
+      || this.creating.has(id) || this.pendingCreates.has(id) || this.writers.has(id)
+    if (owned) throw new SessionDeleteBusyError(id, 'open-handle')
+    const db = await this.database()
+    this.check(); signal?.throwIfAborted()
+    const row = this.row(db, id)
+    if (row === undefined) throw new SessionPersistenceNotFoundError(id)
+    let lease: { release(): Promise<void> }
+    try { lease = await this.acquireSessionLease(this.parseHeader(id, row.header)) }
+    catch (error: unknown) {
+      if (error instanceof SessionAlreadyOwnedError) throw new SessionDeleteBusyError(id, 'foreign-writer')
+      throw error
+    }
+    try {
+      signal?.throwIfAborted()
+      this.transaction(db, () => {
+        if (this.row(db, id) === undefined) throw new SessionPersistenceNotFoundError(id)
+        const lineage = this.segmentLineage(db, row.tail_segment_uuid)
+        this.statement(db, 'DELETE FROM traces WHERE trace_uuid = ?').run(id)
+        const retained = this.retainedSegments(db)
+        const orphans = lineage.filter(uuid => !retained.has(uuid))
+        if (orphans.length > 0) this.removeSegments(db, orphans)
+      })
+    } finally {
+      await lease.release()
+    }
+  }
+
+  /** Segments reachable only through `tail`: its own head plus every indexed ancestor. */
+  private segmentLineage(db: DatabaseSync, tail: SegmentId): SegmentId[] {
+    const rows = this.statement(db, 'SELECT ancestor_uuid AS uuid FROM segment_ancestors WHERE segment_uuid = ?').all(tail)
+    return [tail, ...rows.map(row => segmentId(segmentColumn.parse(row).uuid))]
+  }
+
+  /** Segments every remaining Trace still reaches through its head or indexed ancestry. */
+  private retainedSegments(db: DatabaseSync): Set<SegmentId> {
+    const rows = this.statement(db, `SELECT tail_segment_uuid AS uuid FROM traces
+      UNION SELECT ancestor_uuid FROM segment_ancestors
+        WHERE segment_uuid IN (SELECT tail_segment_uuid FROM traces)`).all()
+    return new Set(rows.map(row => segmentId(segmentColumn.parse(row).uuid)))
+  }
+
+  /** Release unreachable Segment rows; the caller runs this inside the removing transaction. */
+  private removeSegments(db: DatabaseSync, orphans: readonly SegmentId[]): void {
+    db.exec('DROP TRIGGER frames_no_delete')
+    db.exec('DROP TRIGGER ancestors_no_delete')
+    const frames = this.statement(db, 'DELETE FROM frames WHERE segment_uuid = ?')
+    const ancestors = this.statement(db, 'DELETE FROM segment_ancestors WHERE segment_uuid = ?')
+    const segments = this.statement(db, 'DELETE FROM segments WHERE segment_uuid = ?')
+    for (const uuid of orphans) {
+      frames.run(uuid)
+      ancestors.run(uuid)
+      segments.run(uuid)
+    }
+    db.exec(ANCESTORS_NO_DELETE_TRIGGER)
+    db.exec(FRAMES_NO_DELETE_TRIGGER)
   }
 
   private snapshot(id: SessionId, row: Metadata, header: SessionHeader): SessionPersistenceSnapshot {

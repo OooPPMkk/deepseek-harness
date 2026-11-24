@@ -7,8 +7,8 @@ import { SessionAlreadyOwnedError } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionAccess, SessionHandle, SessionPersistenceOpenOptions } from '@deepseek-ai/dsh-session-persistence'
 import type { SqliteStore } from './sqlite.ts'
 
-/** Historical reads used by the persistence service; no JSONL writes or live handles. */
-export type JsonlBackend = Pick<JsonlSessionPersistence, 'stat' | 'hasStoredJsonl' | 'prepare' | 'list'>
+/** Historical reads used by the persistence service, plus removal of a legacy identity it still owns. */
+export type JsonlBackend = Pick<JsonlSessionPersistence, 'stat' | 'hasStoredJsonl' | 'prepare' | 'list' | 'delete'>
 
 /** Owns pending legacy opens until import, ownership handoff, and cleanup finish. */
 export class LegacySessionMigration {

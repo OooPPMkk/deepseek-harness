@@ -8,8 +8,9 @@ import pLimit, { type LimitFunction } from 'p-limit'
 import { z } from 'zod'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { SessionPersistence, SessionAlreadyExistsError, SessionPersistenceNotFoundError, materializeCreateHeader } from '@deepseek-ai/dsh-session-persistence'
-import type { SessionAccess, SessionPersistenceCreateOptions, SessionPersistenceOpenOptions,
-  SessionPersistenceStatOptions, SessionPersistenceListOptions, SessionPersistenceSnapshot } from '@deepseek-ai/dsh-session-persistence'
+import type { SessionAccess, SessionPersistenceCreateOptions, SessionPersistenceDeleteOptions,
+  SessionPersistenceOpenOptions, SessionPersistenceStatOptions, SessionPersistenceListOptions,
+  SessionPersistenceSnapshot } from '@deepseek-ai/dsh-session-persistence'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionHeader } from '@deepseek-ai/dsh-session'
 import { publishNewFileWin32, ensureDurableDirectoryWin32 } from './win32.ts'
@@ -200,6 +201,31 @@ export class SqliteSessionPersistence extends SessionPersistence {
     }
     options?.signal?.throwIfAborted()
     return [...entries.filter(entry => !known.has(entry.header.id)), ...segmented]
+  }
+
+  /**
+   * Remove one stored Session and every Segment only that Session could reach.
+   * The routing record is removed first: a Session without its record still
+   * resolves through the database, while a record whose rows are gone would
+   * break listing. A legacy JSONL identity is removed through the JSONL backend.
+   * @param id - the stored Session to remove.
+   * @param options - optional cancellation observed before the removal starts.
+   * @throws {SessionPersistenceNotFoundError} when the Session does not exist.
+   * @throws {SessionDeleteBusyError} when a handle or a foreign writer still
+   *   owns the Session.
+   */
+  async delete(id: SessionId, options?: SessionPersistenceDeleteOptions): Promise<void> {
+    options?.signal?.throwIfAborted()
+    await this.start()
+    const snapshot = await this.selected(id, options?.signal)
+    if (snapshot === undefined) {
+      await this.jsonl.delete(id, options)
+      return
+    }
+    options?.signal?.throwIfAborted()
+    await rm(this.markerPath(id), { force: true })
+    this.publishedRoutes.delete(id)
+    await this.sqlite.delete(id, options?.signal)
   }
 
   async flush(): Promise<void> { await this.sqlite.flush() }
